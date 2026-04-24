@@ -14,7 +14,10 @@ datasource db {
 model User {
   id        String   @id @default(uuid())
   name      String
-  email     String   @unique
+  email     String   @unique 
   password  String
-
+  role      String   @default("colaborator")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt @default(dbgenerated("null"))
+  deletedAt DateTime? @default(dbgenerated("null")) 
 }
