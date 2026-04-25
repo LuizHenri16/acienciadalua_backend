@@ -9,20 +9,20 @@ export class AuthController {
 
         @Post('/signup')
         async signUp(@Body() signUpDTO: SignUpDTO) {
-            const result = await this.authService.signup(signUpDTO)
+            const token = await this.authService.signup(signUpDTO)
             return {
                 message: "User created successfully",
-                result
+                token
             };
         }
 
         @Post('/signin')
         @HttpCode(200)
         async signIn(@Body() signInDTO: SignInDTO) {
-            const result = await this.authService.signin(signInDTO)
+            const token = await this.authService.signin(signInDTO)
             return {
                 message: "User signed in successfully",
-                result
+                token
             };
         }
 }
