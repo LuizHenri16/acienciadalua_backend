@@ -2,13 +2,13 @@ import { IsEmail, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-vali
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class SignUpDTO {
-    @ApiProperty({ example: 'John Doe', description: 'Full name of the user' })
+    @ApiProperty({ example: 'Vitória Rodrigues', description: 'Full name of the user' })
     @IsString({ message: "Name must be a text" })
     @IsNotEmpty({ message: "Name is required" })
     @MinLength(3, { message: "Name must be at least 3 characters" })
     name: string;
 
-    @ApiProperty({ example: 'john@email.com', description: 'User email address' })
+    @ApiProperty({ example: 'vitoria@gmail.com', description: 'User email address' })
     @IsEmail({}, { message: "Invalid email format" })
     @IsNotEmpty({ message: "Email is required" })
     email: string;
@@ -26,7 +26,7 @@ export class SignUpDTO {
 }
 
 export class SignInDTO {
-    @ApiProperty({ example: 'john@email.com', description: 'User email address' })
+    @ApiProperty({ example: 'vitoria@gmail.com', description: 'User email address' })
     @IsEmail({}, { message: "Invalid email format" })
     @IsNotEmpty({ message: "Email is required" })
     email: string;

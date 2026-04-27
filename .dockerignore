@@ -1,0 +1,33 @@
+# Dependencies and build artifacts
+node_modules
+# dist
+
+# Environment files (use Docker secrets or env vars at runtime)
+.env
+.env.*
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+
+# Logs
+*.log
+logs
+
+# Test files
+coverage
+test
+
+# Docker files (no need to copy into the image)
+Dockerfile
+.dockerignore
+docker-compose.yml
+
+# Misc
+.temp
+.tmp
+README.md
