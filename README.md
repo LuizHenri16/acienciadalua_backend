@@ -1,12 +1,16 @@
-# Auth API
-
-A simple API for user authentication using NestJS, PostgreSQL and JWT.
+# A Ciência da Lua - API
+A complete API for A Ciência da Lua website using NestJS, PostgreSQL and JWT.
 
 ## Endpoints
 
-- `POST /auth/signup` - Register a new user
-- `POST /auth/signin` - Authenticate user and return tokens
+### Admin
+- `POST /auth/admin/signup` - Register a new user
+- `POST /auth/admin/signin` - Authenticate user and return tokens
 - `POST /auth/refresh` - Generate a new access_token using a refresh_token
+
+### Customer
+- `POST /auth/user/signin` - Generate magic link for user authentication
+- `GET /auth/verify-link` - Verify magic link and return tokens
 
 ## Running the app
 ```bash
@@ -24,4 +28,14 @@ npm run start:dev
 - Password hashing using bcrypt and comparing using bcrypt
 - Token refresh using jwt
 - Swagger documentation
+- Rate limiting using @nestjs/throttler
+- Cron job for cleaning up expired or used tokens daily at midnight using @nestjs/schedule
+- Mail service using Resend for sending magic links to customers
 - Validation pipes - using class-validator 
+
+
+## Status
+- in-progress
+
+## Developers 
+Luiz Henrique Bastos Santana
