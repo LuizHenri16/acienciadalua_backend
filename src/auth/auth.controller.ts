@@ -1,4 +1,5 @@
-import { Body, Controller, Get, HttpCode, Post, Query, Res } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Post, Query, Res, UseGuards } from '@nestjs/common';
+import { ThrottlerGuard, Throttle } from '@nestjs/throttler';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { CustomerSigninDTO, RefreshDTO, SignInDTO, SignUpDTO } from './dtos/auth';
@@ -6,6 +7,7 @@ import type { Response } from 'express';
 
 @ApiTags('Auth')
 @Controller('auth')
+@UseGuards(ThrottlerGuard)
 export class AuthController {
 
     constructor(private readonly authService: AuthService) { }
@@ -56,7 +58,8 @@ export class AuthController {
 
     @Post('user/signin')
     @HttpCode(200)
-    @ApiOperation({ summary: 'Authenticate user and return tokens' }) // description of the route
+    @Throttle({ default: { limit: 3, ttl: 900000 } }) // 3 requests per 15 minutes
+    @ApiOperation({ summary: 'Generate magic link for user authentication' }) // description of the route
     @ApiBody({ type: CustomerSigninDTO })
     @ApiResponse({ status: 200, description: 'User signed in successfully.' })
     @ApiResponse({ status: 400, description: 'Validation error.' })

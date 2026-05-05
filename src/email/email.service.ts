@@ -13,7 +13,7 @@ export class EmailService {
 
     async generateMagicLink(email: string, customerId: string) {
         const token = crypto.randomUUID();
-        const expiryDate = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        const expiryDate = new Date(Date.now() + 15 * 60 * 1000);
 
         await this.prismaService.authToken.create({
             data: {
@@ -32,7 +32,7 @@ export class EmailService {
 
         try {
             await this.resend.emails.send({
-                from: "[EMAIL_ADDRESS]",
+                from: `${process.env.EMAIL_SENDER_ADDRESS}`,
                 to: email,
                 subject: "Login em A Ciência da Lua",
                 html: `<a href="${url}">Entre em A Ciência da Lua</a>`,

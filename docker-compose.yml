@@ -1,28 +1,28 @@
 services:
   db:
     image: postgres:15
-    container_name: auth-postgres
+    container_name: acienciadalua-db
     restart: always
     environment:
-      POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-password123}
-      POSTGRES_DB: ${DB_NAME:-auth_db}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
-  api:
-    image: ghcr.io/luizhenri16/auth_api:latest
-    ports:
-      - "3000:3000"
-    environment:
-      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:password123@db:5432/auth_db?schema=public}
-      JWT_SECRET: ${JWT_SECRET}
-      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
-      NODE_ENV: production
-    depends_on:
-      - db
+  # api:
+  #   image: ghcr.io/luizhenri16/auth_api:latest
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:password123@db:5432/auth_db?schema=public}
+  #     JWT_SECRET: ${JWT_SECRET}
+  #     JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+  #     NODE_ENV: production
+  #   depends_on:
+  #     - db
 
 volumes:
   postgres_data:

@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { ScheduleModule } from '@nestjs/schedule';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { AuthModule } from './auth/auth.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { JwtModule } from './jwt/jwt.module';
@@ -6,7 +8,17 @@ import { EmailService } from './email/email.service';
 import { EmailModule } from './email/email.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule, JwtModule, EmailModule],
+  imports: [
+    ThrottlerModule.forRoot([{
+      ttl: 60000,
+      limit: 10,
+    }]),
+    ScheduleModule.forRoot(), 
+    PrismaModule, 
+    AuthModule, 
+    JwtModule, 
+    EmailModule
+  ],
   controllers: [],
   providers: [EmailService],
 })
