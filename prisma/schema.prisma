@@ -12,12 +12,47 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
+  id        String    @id @default(uuid())
   name      String
-  email     String   @unique 
+  email     String    @unique
   password  String
-  role      String   @default("colaborator")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt @default(dbgenerated("null"))
-  deletedAt DateTime? @default(dbgenerated("null")) 
+  role      String    @default("collaborator")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(dbgenerated("null")) @updatedAt
+  deletedAt DateTime? @default(dbgenerated("null"))
+}
+
+model Customer {
+  id         String   @id @default(uuid())
+  email      String   @unique
+  name       String
+  isActive   Boolean
+  created_at DateTime
+
+  tokens    AuthToken[]
+  purchases Purchases[]
+}
+
+model AuthToken {
+  id         Int      @id @default(autoincrement())
+  token      String   @unique
+  used_at    DateTime
+  expires_at DateTime
+
+  customer    Customer @relation(fields: [customer_id], references: [id])
+  customer_id String
+
+  @@index([token])
+}
+
+model Purchases {
+  id          String   @id @default(uuid())
+  customer_id String
+  amount      Decimal
+  status      String
+  created_at  DateTime
+
+  customer Customer @relation(fields: [customer_id], references: [id])
+
+  @@index([customer_id])
 }
