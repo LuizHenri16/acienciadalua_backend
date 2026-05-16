@@ -71,13 +71,8 @@ export class ProductsController {
       },
     },
   })
-  @UseInterceptors(
-    FileFieldsInterceptor([{ name: 'cover', maxCount: 1 }, { name: 'file', maxCount: 1 }], { storage }),
-  )
-  create(
-    @Body() dto: CreateProductDTO,
-    @UploadedFiles() files: { cover?: Express.Multer.File[]; file?: Express.Multer.File[] },
-  ) {
+  @UseInterceptors(FileFieldsInterceptor([{ name: 'cover', maxCount: 1 }, { name: 'file', maxCount: 1 }], { storage }),)
+  create(@Body() dto: CreateProductDTO, @UploadedFiles() files: { cover?: Express.Multer.File[]; file?: Express.Multer.File[] },) {
     const coverUrl = files.cover?.[0]?.filename ?? '';
     const fileUrl = files.file?.[0]?.filename ?? '';
     return this.productsService.create(dto, coverUrl, fileUrl);

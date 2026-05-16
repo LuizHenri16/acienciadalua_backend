@@ -7,6 +7,7 @@ import { JwtModule } from './jwt/jwt.module';
 import { EmailService } from './email/email.service';
 import { EmailModule } from './email/email.module';
 import { ProductsModule } from './products/products.module';
+import { PaymentModule } from './payment/payment.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { ProductsModule } from './products/products.module';
     JwtModule,
     EmailModule,
     ProductsModule,
+    PaymentModule,
   ],
   controllers: [],
   providers: [EmailService],
