@@ -1,8 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,6 +9,8 @@ datasource db {
   provider = "postgresql"
 }
 
+// ─── Admin ────────────────────────────────────────────────────────────────────
+
 model User {
   id        String    @id @default(uuid())
   name      String
@@ -18,41 +18,76 @@ model User {
   password  String
   role      String    @default("collaborator")
   createdAt DateTime  @default(now())
-  updatedAt DateTime  @default(dbgenerated("null")) @updatedAt
-  deletedAt DateTime? @default(dbgenerated("null"))
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 }
+
+// ─── Vitrine / Produtos ───────────────────────────────────────────────────────
+
+model Product {
+  id          String      @id @default(uuid())
+  title       String
+  description String
+  price       Decimal
+  coverUrl    String
+  fileUrl     String
+  category    Category
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  purchases Purchase[]
+}
+
+enum Category {
+  STUDENT
+  TEACHER
+}
+
+// ─── Customers (Alunos / Professores) ────────────────────────────────────────
 
 model Customer {
-  id         String   @id @default(uuid())
-  email      String   @unique
-  name       String
-  isActive   Boolean
-  created_at DateTime
+  id        String    @id @default(uuid())
+  email     String    @unique
+  name      String
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   tokens    AuthToken[]
-  purchases Purchases[]
+  purchases Purchase[]
 }
 
-model AuthToken {
-  id         Int      @id @default(autoincrement())
-  token      String   @unique
-  used_at    DateTime
-  expires_at DateTime
+// ─── Magic Link ───────────────────────────────────────────────────────────────
 
-  customer    Customer @relation(fields: [customer_id], references: [id])
-  customer_id String
+model AuthToken {
+  id         Int       @id @default(autoincrement())
+  token      String    @unique
+  expiresAt  DateTime
+  usedAt     DateTime?
+
+  customerId String
+  customer   Customer  @relation(fields: [customerId], references: [id])
 
   @@index([token])
 }
 
-model Purchases {
-  id          String   @id @default(uuid())
-  customer_id String
-  amount      Decimal
-  status      String
-  created_at  DateTime
+// ─── Compras ──────────────────────────────────────────────────────────────────
 
-  customer Customer @relation(fields: [customer_id], references: [id])
+model Purchase {
+  id                   String   @id @default(uuid())
+  mercadoPagoPaymentId String   @unique
+  amountPaid           Decimal
+  purchasedAt          DateTime
 
-  @@index([customer_id])
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id])
+
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([customerId])
+  @@index([productId])
 }

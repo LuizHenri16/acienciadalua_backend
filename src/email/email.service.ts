@@ -18,9 +18,9 @@ export class EmailService {
         await this.prismaService.authToken.create({
             data: {
                 token,
-                expires_at: expiryDate,
-                customer_id: customerId,
-                used_at: null as unknown as Date,
+                expiresAt: expiryDate,
+                customerId: customerId,
+                usedAt: null as unknown as Date,
             },
         });
 
