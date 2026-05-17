@@ -41,4 +41,21 @@ export class EmailService {
             throw new Error("Failed to send magic link");
         }
     }
+
+    async sendWelcomeEmail(email: string, name: string) {
+        try {
+            await this.resend.emails.send({
+                from: `${process.env.EMAIL_SENDER_ADDRESS}`,
+                to: email,
+                subject: "Bem-vindo ao A Ciência da Lua",
+                html: `
+                <h1>Olá, ${name}!</h1>
+                <p>Seu pagamento foi confirmado. Acesse seus materiais pelo link abaixo:</p>
+                <a href="${process.env.FRONTEND_URL}/minha-conta">Acessar minha conta</a>
+            `
+            });
+        } catch (error) {
+            throw new Error("Failed to send welcome email");
+        }
+    }
 }
