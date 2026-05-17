@@ -31,8 +31,6 @@ const storage = diskStorage({
 });
 
 @ApiTags('Products')
-@ApiBearerAuth()
-@UseGuards(JwtAdminGuard) // this guard ensures that the user is authenticated and is an admin
 @Controller('products')
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) { }
@@ -57,6 +55,8 @@ export class ProductsController {
 
   @Post()
   @ApiOperation({ summary: 'Create a new product' })
+  @ApiBearerAuth()
+  @UseGuards(JwtAdminGuard)
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
@@ -80,18 +80,24 @@ export class ProductsController {
 
   @Put(':id')
   @ApiOperation({ summary: 'Update a product' })
+  @ApiBearerAuth()
+  @UseGuards(JwtAdminGuard)
   update(@Param('id') id: string, @Body() dto: UpdateProductDTO) {
     return this.productsService.update(id, dto);
   }
 
   @Patch(':id/toggle')
   @ApiOperation({ summary: 'Toggle product isActive status' })
+  @ApiBearerAuth()
+  @UseGuards(JwtAdminGuard)
   toggle(@Param('id') id: string) {
     return this.productsService.toggle(id);
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a product' })
+  @ApiBearerAuth()
+  @UseGuards(JwtAdminGuard)
   remove(@Param('id') id: string) {
     return this.productsService.remove(id);
   }

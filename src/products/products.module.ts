@@ -13,5 +13,6 @@ import { JwtModule } from '../jwt/jwt.module';
   ],
   providers: [ProductsService],
   controllers: [ProductsController],
+  exports: [ProductsService],
 })
 export class ProductsModule { }

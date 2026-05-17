@@ -16,7 +16,9 @@ async function bootstrap() {
   }));
 
   // Expose uploads folder to access the images
-  app.useStaticAssets(join(__dirname, '..', 'uploads'));
+  app.useStaticAssets(join(process.cwd(), 'uploads'), {
+    prefix: '/uploads',
+  });
 
   // Swagger setup to access the documentation
   const config = new DocumentBuilder()

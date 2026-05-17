@@ -8,6 +8,7 @@ import { EmailService } from './email/email.service';
 import { EmailModule } from './email/email.module';
 import { ProductsModule } from './products/products.module';
 import { PaymentModule } from './payment/payment.module';
+import { CustomersModule } from './customers/customers.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { PaymentModule } from './payment/payment.module';
     EmailModule,
     ProductsModule,
     PaymentModule,
+    CustomersModule,
   ],
   controllers: [],
   providers: [EmailService],
