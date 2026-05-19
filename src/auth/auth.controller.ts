@@ -28,7 +28,7 @@ export class AuthController {
 
     @Post('admin/signin')
     @HttpCode(200)
-    @ApiOperation({ summary: 'Authenticate user and return tokens' }) // description of the route
+    @ApiOperation({ summary: 'Authenticate user and return tokens' })
     @ApiBody({ type: SignInDTO })
     @ApiResponse({ status: 200, description: 'User signed in successfully.' })
     @ApiResponse({ status: 400, description: 'Validation error.' })
@@ -43,7 +43,7 @@ export class AuthController {
 
     @Post('admin/refresh')
     @HttpCode(200)
-    @ApiOperation({ summary: 'Generate a new access_token using a refresh_token' }) // description of the route
+    @ApiOperation({ summary: 'Generate a new access_token using a refresh_token' })
     @ApiBody({ type: RefreshDTO })
     @ApiResponse({ status: 200, description: 'New access_token generated successfully.' })
     @ApiResponse({ status: 400, description: 'Validation error.' })
@@ -58,8 +58,8 @@ export class AuthController {
 
     @Post('user/signin')
     @HttpCode(200)
-    @Throttle({ default: { limit: 3, ttl: 900000 } }) // 3 requests per 15 minutes
-    @ApiOperation({ summary: 'Generate magic link for user authentication' }) // description of the route
+    @Throttle({ default: { limit: 3, ttl: 900000 } })
+    @ApiOperation({ summary: 'Generate magic link for user authentication' })
     @ApiBody({ type: CustomerSigninDTO })
     @ApiResponse({ status: 200, description: 'User signed in successfully.' })
     @ApiResponse({ status: 400, description: 'Validation error.' })
@@ -73,13 +73,22 @@ export class AuthController {
 
     @Get('verify-link')
     @HttpCode(200)
-    @ApiOperation({ summary: 'Verify magic link and return tokens' }) // description of the route
+    @ApiOperation({ summary: 'Verify magic link and return tokens' })
     @ApiResponse({ status: 200, description: 'Magic link verified successfully.' })
     @ApiResponse({ status: 400, description: 'Validation error.' })
     @ApiResponse({ status: 401, description: 'Invalid or expired magic link.' })
     async verifyMagicLink(@Query('token') token: string, @Res() res: Response) {
         const jwt = await this.authService.customerVerifyMagicLink(token);
-
         return res.redirect(`${process.env.APP_URL}/login?access_token=${jwt}`);
+    }
+
+    // TODO: REMOVER ANTES DE IR PARA PRODUÇÃO
+    @Post('user/dev-token')
+    @HttpCode(200)
+    @ApiOperation({ summary: '[DEV ONLY] Gera token do customer direto pelo email, sem magic link' })
+    @ApiBody({ type: CustomerSigninDTO })
+    async devCustomerToken(@Body() dto: CustomerSigninDTO) {
+        const token = await this.authService.customerDevToken(dto.email);
+        return { access_token: token };
     }
 }

@@ -30,32 +30,36 @@ export class EmailService {
     async sendMagicLink(email: string, token: string) {
         const url = `${process.env.MAGIC_LINK_URL}${token}`;
 
-        try {
-            await this.resend.emails.send({
-                from: `${process.env.EMAIL_SENDER_ADDRESS}`,
-                to: email,
-                subject: "Login em A Ciência da Lua",
-                html: `<a href="${url}">Entre em A Ciência da Lua</a>`,
-            });
-        } catch (error) {
-            throw new Error("Failed to send magic link");
+        const { data, error } = await this.resend.emails.send({
+            from: process.env.EMAIL_SENDER_ADDRESS ?? 'onboarding@resend.dev',
+            to: email,
+            subject: "Login em A Ciência da Lua",
+            html: `<a href="${url}">Entre em A Ciência da Lua</a>`,
+        });
+
+        if (error) {
+            console.error('[EmailService] Resend error:', error);
+            throw new Error(`Failed to send magic link: ${error.message}`);
         }
+
+        console.log('[EmailService] Magic link sent. Email ID:', data?.id);
     }
 
     async sendWelcomeEmail(email: string, name: string) {
-        try {
-            await this.resend.emails.send({
-                from: `${process.env.EMAIL_SENDER_ADDRESS}`,
-                to: email,
-                subject: "Bem-vindo ao A Ciência da Lua",
-                html: `
+        const { error } = await this.resend.emails.send({
+            from: process.env.EMAIL_SENDER_ADDRESS ?? 'onboarding@resend.dev',
+            to: email,
+            subject: "Bem-vindo ao A Ciência da Lua",
+            html: `
                 <h1>Olá, ${name}!</h1>
                 <p>Seu pagamento foi confirmado. Acesse seus materiais pelo link abaixo:</p>
                 <a href="${process.env.FRONTEND_URL}/minha-conta">Acessar minha conta</a>
             `
-            });
-        } catch (error) {
-            throw new Error("Failed to send welcome email");
+        });
+
+        if (error) {
+            console.error('[EmailService] Resend error (welcome):', error);
+            throw new Error(`Failed to send welcome email: ${error.message}`);
         }
     }
 }

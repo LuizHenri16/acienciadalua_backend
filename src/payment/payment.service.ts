@@ -32,11 +32,15 @@ export class PaymentService {
 
                         },
                     ],
+                    notification_url: process.env.MP_WEBHOOK_URL,
                     external_reference: product.id,
                     back_urls: {
                         success: process.env.MP_SUCCESS_URL,
                         failure: process.env.MP_FAILURE_URL,
                         pending: process.env.MP_PENDING_URL,
+                    },
+                    payment_methods: {
+
                     },
                     auto_return: 'approved',
                 }

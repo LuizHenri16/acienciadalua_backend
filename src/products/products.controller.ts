@@ -65,14 +65,18 @@ export class ProductsController {
         title: { type: 'string' },
         description: { type: 'string' },
         price: { type: 'number' },
+        isActive: { type: 'boolean' },
         category: { type: 'string', enum: Object.values(Category) },
         cover: { type: 'string', format: 'binary' },
         file: { type: 'string', format: 'binary' },
       },
     },
   })
-  @UseInterceptors(FileFieldsInterceptor([{ name: 'cover', maxCount: 1 }, { name: 'file', maxCount: 1 }], { storage }),)
-  create(@Body() dto: CreateProductDTO, @UploadedFiles() files: { cover?: Express.Multer.File[]; file?: Express.Multer.File[] },) {
+  @UseInterceptors(FileFieldsInterceptor([{ name: 'cover', maxCount: 1 }, { name: 'file', maxCount: 1 }], { storage }))
+  create(
+    @Body() dto: CreateProductDTO,
+    @UploadedFiles() files: { cover?: Express.Multer.File[]; file?: Express.Multer.File[] },
+  ) {
     const coverUrl = files.cover?.[0]?.filename ?? '';
     const fileUrl = files.file?.[0]?.filename ?? '';
     return this.productsService.create(dto, coverUrl, fileUrl);
@@ -82,8 +86,30 @@ export class ProductsController {
   @ApiOperation({ summary: 'Update a product' })
   @ApiBearerAuth()
   @UseGuards(JwtAdminGuard)
-  update(@Param('id') id: string, @Body() dto: UpdateProductDTO) {
-    return this.productsService.update(id, dto);
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string' },
+        description: { type: 'string' },
+        price: { type: 'number' },
+        isActive: { type: 'boolean' },
+        category: { type: 'string', enum: Object.values(Category) },
+        cover: { type: 'string', format: 'binary' },
+        file: { type: 'string', format: 'binary' },
+      },
+    },
+  })
+  @UseInterceptors(FileFieldsInterceptor([{ name: 'cover', maxCount: 1 }, { name: 'file', maxCount: 1 }], { storage }))
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateProductDTO,
+    @UploadedFiles() files: { cover?: Express.Multer.File[]; file?: Express.Multer.File[] },
+  ) {
+    const coverUrl = files.cover?.[0]?.filename;
+    const fileUrl = files.file?.[0]?.filename;
+    return this.productsService.update(id, dto, coverUrl, fileUrl);
   }
 
   @Patch(':id/toggle')

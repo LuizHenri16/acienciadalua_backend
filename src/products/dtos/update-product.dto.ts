@@ -1,7 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Category } from '@prisma/client';
-import { Type } from 'class-transformer';
-import { IsEnum, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
+import { IsBoolean, IsEnum, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 
 export class UpdateProductDTO {
     @ApiPropertyOptional({ example: 'Apostila de Química' })
@@ -20,6 +20,12 @@ export class UpdateProductDTO {
     @Min(0)
     @IsOptional()
     price?: number;
+
+    @ApiPropertyOptional({ example: true })
+    @IsBoolean()
+    @Transform(({ value }) => value === 'true' || value === true)
+    @IsOptional()
+    isActive?: boolean;
 
     @ApiPropertyOptional({ enum: Category, example: Category.STUDENT })
     @IsEnum(Category)

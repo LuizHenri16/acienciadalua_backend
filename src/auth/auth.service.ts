@@ -101,6 +101,17 @@ export class AuthService {
         await this.emailService.generateMagicLink(customer.email, customer.id);
     }
 
+    // TODO: REMOVER ANTES DE IR PARA PRODUÇÃO
+    async customerDevToken(email: string) {
+        const customer = await this.prismaSevice.customer.findUnique({ where: { email } });
+        if (!customer) throw new UnauthorizedException("Customer not found");
+
+        return this.jwtService.sign(
+            { sub: customer.id, email: customer.email, name: customer.name },
+            { secret: process.env.JWT_SECRET_CUSTOMER }
+        );
+    }
+
     async customerVerifyMagicLink(token: string) {
         const tokenExists = await this.prismaSevice.authToken.findUnique({
             where: { token },
