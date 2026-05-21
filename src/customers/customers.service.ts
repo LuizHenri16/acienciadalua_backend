@@ -33,15 +33,14 @@ export class CustomersService {
       orderBy: { purchasedAt: 'desc' },
     });
 
-    // Separar por categoria para o dashboard
-    const student = purchases
-      .filter((p) => p.product.category === 'STUDENT')
-      .map((p) => p.product);
+    const mapPurchase = (p: typeof purchases[0]) => ({
+      ...p.product,
+      purchasedAt: p.purchasedAt,
+    });
 
-    const teacher = purchases
-      .filter((p) => p.product.category === 'TEACHER')
-      .map((p) => p.product);
-
-    return { student, teacher };
+    return {
+      student: purchases.filter(p => p.product.category === 'STUDENT').map(mapPurchase),
+      teacher: purchases.filter(p => p.product.category === 'TEACHER').map(mapPurchase),
+    };
   }
 }
