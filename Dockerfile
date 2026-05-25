@@ -27,7 +27,10 @@ COPY --from=build /app/prisma.config.js ./prisma.config.js
 COPY --from=build /app/node_modules/@prisma/client ./node_modules/@prisma/client
 COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
 
+COPY --from=build /app/node_modules/prisma ./node_modules/prisma
+COPY --from=build /app/node_modules/.bin ./node_modules/.bin
+
 EXPOSE 3000
 
-# Executa as migrations e inicia a partir de dist/src/main
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/src/main"]
+# Executa as migrations e inicia a partir de dist/src/main (com o .js explicitado)
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/src/main.js"]
