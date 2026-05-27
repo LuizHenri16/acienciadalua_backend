@@ -10,7 +10,7 @@ async function bootstrap() {
 
   // CORS
   app.enableCors({
-    origin: ["http://192.241.253.54:3001", "http://localhost:3001"],
+    origin: ["http://192.241.253.54:3003", "http://localhost:3001", "https://acienciadalua.com.br"],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
