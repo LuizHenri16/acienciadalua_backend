@@ -6,6 +6,9 @@ import { PrismaModule } from './prisma/prisma.module';
 import { JwtModule } from './jwt/jwt.module';
 import { EmailService } from './email/email.service';
 import { EmailModule } from './email/email.module';
+import { ProductsModule } from './products/products.module';
+import { PaymentModule } from './payment/payment.module';
+import { CustomersModule } from './customers/customers.module';
 
 @Module({
   imports: [
@@ -13,11 +16,14 @@ import { EmailModule } from './email/email.module';
       ttl: 60000,
       limit: 10,
     }]),
-    ScheduleModule.forRoot(), 
-    PrismaModule, 
-    AuthModule, 
-    JwtModule, 
-    EmailModule
+    ScheduleModule.forRoot(),
+    PrismaModule,
+    AuthModule,
+    JwtModule,
+    EmailModule,
+    ProductsModule,
+    PaymentModule,
+    CustomersModule,
   ],
   controllers: [],
   providers: [EmailService],

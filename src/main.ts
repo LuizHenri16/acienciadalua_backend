@@ -1,10 +1,20 @@
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { join } from 'path';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  // CORS
+  app.enableCors({
+    origin: ["http://192.241.253.54:3003", "http://localhost:3002", "https://acienciadalua.com.br"],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+  });
 
   // global pipe to validate DTOs
   app.useGlobalPipes(new ValidationPipe({
@@ -13,11 +23,16 @@ async function bootstrap() {
     transform: true,           // convert body to DTO class instance
   }));
 
+  // Expose uploads folder to access the images
+  app.useStaticAssets(join(process.cwd(), 'uploads'), {
+    prefix: '/uploads',
+  });
+
   // Swagger setup to access the documentation
   const config = new DocumentBuilder()
-    .setTitle('Auth API')
-    .setDescription('API responsible for user authentication: signup, signin and token refresh.')
-    .setVersion('1.0')
+    .setTitle('A Ciência da Lua - API')
+    .setDescription('API responsible for A Ciência da Lua.')
+    .setVersion('0.0.2')
     .addBearerAuth() // enables the "Authorize" button for JWT in the Swagger UI
     .build();
 

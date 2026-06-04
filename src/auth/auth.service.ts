@@ -40,13 +40,11 @@ export class AuthService {
             throw new UnauthorizedException("User already exists");
         }
 
-        // Generated hash password using bcrypt
         const hashedPassword = await this.passwordService.hashPassword(data.password);
         data.password = hashedPassword;
 
         const user = await this.prismaSevice.user.create({ data });
 
-        // After login generates access_token nd refresh_token
         const payload = { id: user.id, email: user.email, role: user.role };
 
         return {
@@ -74,12 +72,10 @@ export class AuthService {
 
     async refresh(refresh_token: string) {
         try {
-            // Validates the token using the refresh secret (throws if invalid or expired)
             const payload = this.jwtService.verify(refresh_token, {
                 secret: process.env.JWT_REFRESH_SECRET,
             });
 
-            // Generates a new access token with the same user data
             const newAccessToken = this.generateAccessToken({
                 id: payload.id,
                 email: payload.email,
@@ -94,8 +90,6 @@ export class AuthService {
     }
 
     async customerGenerateMagicLink(data: CustomerSigninDTO) {
-        // Aqui vou ter que verificar a existência do cliente no banco
-        // Usar a biblioteca para gerar o link de acesso ao sistema e enviar um e-mail com esse link
         const customer = await this.prismaSevice.customer.findUnique({
             where: { email: data.email }
         });
@@ -107,6 +101,17 @@ export class AuthService {
         await this.emailService.generateMagicLink(customer.email, customer.id);
     }
 
+    // TODO: REMOVER ANTES DE IR PARA PRODUÇÃO
+    async customerDevToken(email: string) {
+        const customer = await this.prismaSevice.customer.findUnique({ where: { email } });
+        if (!customer) throw new UnauthorizedException("Customer not found");
+
+        return this.jwtService.sign(
+            { sub: customer.id, email: customer.email, name: customer.name },
+            { secret: process.env.JWT_SECRET_CUSTOMER }
+        );
+    }
+
     async customerVerifyMagicLink(token: string) {
         const tokenExists = await this.prismaSevice.authToken.findUnique({
             where: { token },
@@ -115,20 +120,18 @@ export class AuthService {
             }
         });
 
-        // Verify if token exists, if it expires, if it was used
         if (!tokenExists) throw new UnauthorizedException("Invalid magic link.");
-        if (tokenExists.expires_at < new Date()) throw new UnauthorizedException("Magic link expired.");
-        if (tokenExists.used_at) throw new UnauthorizedException("Used magic link.");
+        if (tokenExists.expiresAt < new Date()) throw new UnauthorizedException("Magic link expired.");
+        if (tokenExists.usedAt) throw new UnauthorizedException("Used magic link.");
 
         await this.prismaSevice.authToken.update({
             where: { id: tokenExists.id },
-            data: { used_at: new Date() }
+            data: { usedAt: new Date() }
         });
 
         return this.jwtService.sign(
-            { sub: tokenExists.customer_id, email: tokenExists.customer.email, name: tokenExists.customer.name },
+            { sub: tokenExists.customerId, email: tokenExists.customer.email, name: tokenExists.customer.name },
             { secret: process.env.JWT_SECRET_CUSTOMER }
         );
     }
 }
-

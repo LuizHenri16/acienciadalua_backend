@@ -18,8 +18,8 @@ export class AuthTokenCleanupService {
             const result = await this.prismaService.authToken.deleteMany({
                 where: {
                     OR: [
-                        { expires_at: { lt: new Date() } }, // Verifica se o token expirou
-                        { used_at: { not: null as any } } // Verifica se o token foi usado
+                        { expiresAt: { lt: new Date() } }, // Verifica se o token expirou
+                        { usedAt: { not: null as any } } // Verifica se o token foi usado
                     ]
                 }
             });
