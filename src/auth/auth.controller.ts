@@ -82,13 +82,4 @@ export class AuthController {
         return res.redirect(`${process.env.APP_URL}/login?access_token=${jwt}`);
     }
 
-    // TODO: REMOVER ANTES DE IR PARA PRODUÇÃO
-    @Post('user/dev-token')
-    @HttpCode(200)
-    @ApiOperation({ summary: '[DEV ONLY] Gera token do customer direto pelo email, sem magic link' })
-    @ApiBody({ type: CustomerSigninDTO })
-    async devCustomerToken(@Body() dto: CustomerSigninDTO) {
-        const token = await this.authService.customerDevToken(dto.email);
-        return { access_token: token };
-    }
 }
