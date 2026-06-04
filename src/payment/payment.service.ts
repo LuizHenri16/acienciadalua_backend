@@ -40,7 +40,14 @@ export class PaymentService {
                         pending: process.env.MP_PENDING_URL,
                     },
                     payment_methods: {
-
+                        excluded_payment_types: [
+                            { id: 'ticket' },
+                            { id: 'atm' }
+                        ],
+                        excluded_payment_methods: [
+                            { id: "pec" },
+                        ],
+                        installments: 6,
                     },
                     auto_return: 'approved',
                 }
