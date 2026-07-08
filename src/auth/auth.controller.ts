@@ -1,9 +1,8 @@
-import { Body, Controller, Get, HttpCode, Post, Query, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, HttpCode, Post, UseGuards } from '@nestjs/common';
 import { ThrottlerGuard, Throttle } from '@nestjs/throttler';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
-import { CustomerSigninDTO, RefreshDTO, SignInDTO, SignUpDTO } from './dtos/auth';
-import type { Response } from 'express';
+import { CustomerSigninDTO, CustomerSetPasswordDTO, ForgotPasswordDTO, ResetPasswordDTO, RefreshDTO, SignInDTO, SignUpDTO } from './dtos/auth';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -11,6 +10,8 @@ import type { Response } from 'express';
 export class AuthController {
 
     constructor(private readonly authService: AuthService) { }
+
+    // ─── Admin ──────────────────────────────────────────────────────────────────
 
     @Post('admin/signup')
     @ApiOperation({ summary: 'Register a new user' })
@@ -56,30 +57,64 @@ export class AuthController {
         };
     }
 
+    // ─── Customer (password-based) ──────────────────────────────────────────────
+
     @Post('user/signin')
     @HttpCode(200)
-    @Throttle({ default: { limit: 3, ttl: 900000 } })
-    @ApiOperation({ summary: 'Generate magic link for user authentication' })
+    @Throttle({ default: { limit: 10, ttl: 900000 } })
+    @ApiOperation({ summary: 'Sign in with email and password' })
     @ApiBody({ type: CustomerSigninDTO })
     @ApiResponse({ status: 200, description: 'User signed in successfully.' })
     @ApiResponse({ status: 400, description: 'Validation error.' })
-    @ApiResponse({ status: 401, description: 'Invalid email or password.' })
-    async customerGenerateMagicLink(@Body() customerSigninDTO: CustomerSigninDTO) {
-        await this.authService.customerGenerateMagicLink(customerSigninDTO);
+    @ApiResponse({ status: 401, description: 'Invalid email/password or no password set.' })
+    async customerSignIn(@Body() dto: CustomerSigninDTO) {
+        const result = await this.authService.customerSignIn(dto);
         return {
-            message: "Magic link sent successfully",
+            message: "Signed in successfully",
+            ...result
         };
     }
 
-    @Get('verify-link')
+    @Post('user/password')
     @HttpCode(200)
-    @ApiOperation({ summary: 'Verify magic link and return tokens' })
-    @ApiResponse({ status: 200, description: 'Magic link verified successfully.' })
-    @ApiResponse({ status: 400, description: 'Validation error.' })
-    @ApiResponse({ status: 401, description: 'Invalid or expired magic link.' })
-    async verifyMagicLink(@Query('token') token: string, @Res() res: Response) {
-        const jwt = await this.authService.customerVerifyMagicLink(token);
-        return res.redirect(`${process.env.APP_URL}/login?access_token=${jwt}`);
+    @ApiOperation({ summary: 'Set initial password (first access)' })
+    @ApiBody({ type: CustomerSetPasswordDTO })
+    @ApiResponse({ status: 200, description: 'Password set successfully.' })
+    @ApiResponse({ status: 404, description: 'Customer not found.' })
+    @ApiResponse({ status: 400, description: 'Password already set or validation error.' })
+    async customerSetPassword(@Body() dto: CustomerSetPasswordDTO) {
+        const result = await this.authService.customerSetPassword(dto);
+        return {
+            message: "Password set successfully",
+            ...result
+        };
+    }
+
+    @Post('user/forgot-password')
+    @HttpCode(200)
+    @Throttle({ default: { limit: 3, ttl: 900000 } })
+    @ApiOperation({ summary: 'Send reset password email' })
+    @ApiBody({ type: ForgotPasswordDTO })
+    @ApiResponse({ status: 200, description: 'Reset email sent if email exists.' })
+    async customerForgotPassword(@Body() dto: ForgotPasswordDTO) {
+        await this.authService.customerForgotPassword(dto);
+        return {
+            message: "If the email exists, a reset link has been sent.",
+        };
+    }
+
+    @Post('user/reset-password')
+    @HttpCode(200)
+    @ApiOperation({ summary: 'Reset password using token from email' })
+    @ApiBody({ type: ResetPasswordDTO })
+    @ApiResponse({ status: 200, description: 'Password reset successfully.' })
+    @ApiResponse({ status: 400, description: 'Invalid or expired token.' })
+    async customerResetPassword(@Body() dto: ResetPasswordDTO) {
+        const result = await this.authService.customerResetPassword(dto);
+        return {
+            message: "Password reset successfully",
+            ...result
+        };
     }
 
 }
