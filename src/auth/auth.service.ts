@@ -1,6 +1,6 @@
 import { JwtService } from '@nestjs/jwt';
-import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { CustomerSigninDTO, SignInDTO, SignUpDTO } from './dtos/auth';
+import { Injectable, UnauthorizedException, NotFoundException, BadRequestException } from '@nestjs/common';
+import { CustomerSigninDTO, CustomerSetPasswordDTO, ForgotPasswordDTO, ResetPasswordDTO, SignInDTO, SignUpDTO } from './dtos/auth';
 import { PrismaService } from '../prisma/prisma.service';
 import { PasswordService } from './password.service';
 import 'dotenv/config';
@@ -15,7 +15,8 @@ export class AuthService {
         private emailService: EmailService
     ) { }
 
-    // Generates a short-lived access token (1h)
+    // ─── Admin ──────────────────────────────────────────────────────────────────
+
     private generateAccessToken(payload: { id: string; email: string; role: string }) {
         return this.jwtService.sign(payload, {
             secret: process.env.JWT_SECRET,
@@ -23,7 +24,6 @@ export class AuthService {
         });
     }
 
-    // Generates a long-lived refresh token (7d) with a different secret
     private generateRefreshToken(payload: { id: string; email: string; role: string }) {
         return this.jwtService.sign(payload, {
             secret: process.env.JWT_REFRESH_SECRET,
@@ -89,7 +89,16 @@ export class AuthService {
         }
     }
 
-    async customerGenerateMagicLink(data: CustomerSigninDTO) {
+    // ─── Customer (password-based) ──────────────────────────────────────────────
+
+    private generateCustomerToken(customer: { id: string; email: string; name: string }) {
+        return this.jwtService.sign(
+            { sub: customer.id, email: customer.email, name: customer.name },
+            { secret: process.env.JWT_SECRET_CUSTOMER }
+        );
+    }
+
+    async customerSignIn(data: CustomerSigninDTO) {
         const customer = await this.prismaSevice.customer.findUnique({
             where: { email: data.email }
         });
@@ -98,7 +107,88 @@ export class AuthService {
             throw new UnauthorizedException("Customer not found");
         }
 
-        await this.emailService.generateMagicLink(customer.email, customer.id);
+        if (!customer.password) {
+            throw new UnauthorizedException("NO_PASSWORD_SET");
+        }
+
+        if (!(await this.passwordService.comparePassword(data.password, customer.password))) {
+            throw new UnauthorizedException("Email or password wrong.");
+        }
+
+        return { access_token: this.generateCustomerToken(customer) };
+    }
+
+    async customerSetPassword(data: CustomerSetPasswordDTO) {
+        const customer = await this.prismaSevice.customer.findUnique({
+            where: { email: data.email }
+        });
+
+        if (!customer) {
+            throw new NotFoundException("Customer not found");
+        }
+
+        if (customer.password) {
+            throw new BadRequestException("Password already set. Use forgot password to reset.");
+        }
+
+        const hashedPassword = await this.passwordService.hashPassword(data.password);
+
+        await this.prismaSevice.customer.update({
+            where: { id: customer.id },
+            data: { password: hashedPassword }
+        });
+
+        return { access_token: this.generateCustomerToken(customer) };
+    }
+
+    async customerForgotPassword(data: ForgotPasswordDTO) {
+        const customer = await this.prismaSevice.customer.findUnique({
+            where: { email: data.email }
+        });
+
+        if (!customer) {
+            // Don't reveal if email exists
+            return;
+        }
+
+        const resetToken = crypto.randomUUID();
+        const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1h
+
+        await this.prismaSevice.customer.update({
+            where: { id: customer.id },
+            data: {
+                resetToken,
+                resetTokenExpiresAt: expiresAt,
+            }
+        });
+
+        await this.emailService.sendResetPasswordEmail(customer.email, resetToken);
+    }
+
+    async customerResetPassword(data: ResetPasswordDTO) {
+        const customer = await this.prismaSevice.customer.findFirst({
+            where: {
+                resetToken: data.token,
+                resetTokenExpiresAt: { gt: new Date() }
+            }
+        });
+
+        if (!customer) {
+            throw new BadRequestException("Invalid or expired reset token.");
+        }
+
+        const hashedPassword = await this.passwordService.hashPassword(data.password);
+
+        await this.prismaSevice.customer.update({
+            where: { id: customer.id },
+            data: {
+                password: hashedPassword,
+                resetToken: null as any,
+                resetTokenExpiresAt: null as any,
+            }
+        });
+
+        return { access_token: this.generateCustomerToken(customer) };
     }
 
     // TODO: REMOVER ANTES DE IR PARA PRODUÇÃO
@@ -106,32 +196,6 @@ export class AuthService {
         const customer = await this.prismaSevice.customer.findUnique({ where: { email } });
         if (!customer) throw new UnauthorizedException("Customer not found");
 
-        return this.jwtService.sign(
-            { sub: customer.id, email: customer.email, name: customer.name },
-            { secret: process.env.JWT_SECRET_CUSTOMER }
-        );
-    }
-
-    async customerVerifyMagicLink(token: string) {
-        const tokenExists = await this.prismaSevice.authToken.findUnique({
-            where: { token },
-            include: {
-                customer: true
-            }
-        });
-
-        if (!tokenExists) throw new UnauthorizedException("Invalid magic link.");
-        if (tokenExists.expiresAt < new Date()) throw new UnauthorizedException("Magic link expired.");
-        if (tokenExists.usedAt) throw new UnauthorizedException("Used magic link.");
-
-        await this.prismaSevice.authToken.update({
-            where: { id: tokenExists.id },
-            data: { usedAt: new Date() }
-        });
-
-        return this.jwtService.sign(
-            { sub: tokenExists.customerId, email: tokenExists.customer.email, name: tokenExists.customer.name },
-            { secret: process.env.JWT_SECRET_CUSTOMER }
-        );
+        return this.generateCustomerToken(customer);
     }
 }
