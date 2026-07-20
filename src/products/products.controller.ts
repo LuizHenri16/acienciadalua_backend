@@ -15,7 +15,14 @@ import {
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
-import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
+  ApiOperation,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 import { Category } from '@prisma/client';
 import { ProductsService } from './products.service';
 import { CreateProductDTO } from './dtos/create-product.dto';
@@ -33,7 +40,7 @@ const storage = diskStorage({
 @ApiTags('Products')
 @Controller('products')
 export class ProductsController {
-  constructor(private readonly productsService: ProductsService) { }
+  constructor(private readonly productsService: ProductsService) {}
 
   @Get()
   @ApiOperation({ summary: 'List all products' })
@@ -43,7 +50,8 @@ export class ProductsController {
     @Query('category') category?: Category,
     @Query('isActive') isActive?: string,
   ) {
-    const parsedIsActive = isActive !== undefined ? isActive === 'true' : undefined;
+    const parsedIsActive =
+      isActive !== undefined ? isActive === 'true' : undefined;
     return this.productsService.findAll(category, parsedIsActive);
   }
 
@@ -72,10 +80,19 @@ export class ProductsController {
       },
     },
   })
-  @UseInterceptors(FileFieldsInterceptor([{ name: 'cover', maxCount: 1 }, { name: 'file', maxCount: 1 }], { storage }))
+  @UseInterceptors(
+    FileFieldsInterceptor(
+      [
+        { name: 'cover', maxCount: 1 },
+        { name: 'file', maxCount: 1 },
+      ],
+      { storage },
+    ),
+  )
   create(
     @Body() dto: CreateProductDTO,
-    @UploadedFiles() files: { cover?: Express.Multer.File[]; file?: Express.Multer.File[] },
+    @UploadedFiles()
+    files: { cover?: Express.Multer.File[]; file?: Express.Multer.File[] },
   ) {
     const coverUrl = files.cover?.[0]?.filename ?? '';
     const fileUrl = files.file?.[0]?.filename ?? '';
@@ -101,11 +118,20 @@ export class ProductsController {
       },
     },
   })
-  @UseInterceptors(FileFieldsInterceptor([{ name: 'cover', maxCount: 1 }, { name: 'file', maxCount: 1 }], { storage }))
+  @UseInterceptors(
+    FileFieldsInterceptor(
+      [
+        { name: 'cover', maxCount: 1 },
+        { name: 'file', maxCount: 1 },
+      ],
+      { storage },
+    ),
+  )
   update(
     @Param('id') id: string,
     @Body() dto: UpdateProductDTO,
-    @UploadedFiles() files: { cover?: Express.Multer.File[]; file?: Express.Multer.File[] },
+    @UploadedFiles()
+    files: { cover?: Express.Multer.File[]; file?: Express.Multer.File[] },
   ) {
     const coverUrl = files.cover?.[0]?.filename;
     const fileUrl = files.file?.[0]?.filename;

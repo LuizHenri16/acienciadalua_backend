@@ -33,14 +33,18 @@ export class CustomersService {
       orderBy: { purchasedAt: 'desc' },
     });
 
-    const mapPurchase = (p: typeof purchases[0]) => ({
+    const mapPurchase = (p: (typeof purchases)[0]) => ({
       ...p.product,
       purchasedAt: p.purchasedAt,
     });
 
     return {
-      student: purchases.filter(p => p.product.category === 'STUDENT').map(mapPurchase),
-      teacher: purchases.filter(p => p.product.category === 'TEACHER').map(mapPurchase),
+      student: purchases
+        .filter((p) => p.product.category === 'STUDENT')
+        .map(mapPurchase),
+      teacher: purchases
+        .filter((p) => p.product.category === 'TEACHER')
+        .map(mapPurchase),
     };
   }
 }

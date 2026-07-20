@@ -10,18 +10,24 @@ async function bootstrap() {
 
   // CORS
   app.enableCors({
-    origin: ["http://192.241.253.54:3003", "http://localhost:3002", "https://acienciadalua.com.br"],
+    origin: [
+      'http://192.241.253.54:3003',
+      'http://localhost:3002',
+      'https://acienciadalua.com.br',
+    ],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
   });
 
   // global pipe to validate DTOs
-  app.useGlobalPipes(new ValidationPipe({
-    whitelist: true,           // remove fields not declared in the DTO
-    forbidNonWhitelisted: true, // return an error if an unknown field is received
-    transform: true,           // convert body to DTO class instance
-  }));
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true, // remove fields not declared in the DTO
+      forbidNonWhitelisted: true, // return an error if an unknown field is received
+      transform: true, // convert body to DTO class instance
+    }),
+  );
 
   // Expose uploads folder to access the images
   app.useStaticAssets(join(process.cwd(), 'uploads'), {
