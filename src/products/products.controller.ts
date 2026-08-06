@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -36,6 +37,32 @@ const storage = diskStorage({
     cb(null, `${unique}${extname(file.originalname)}`);
   },
 });
+
+const ALLOWED_COVER_EXTENSIONS = ['.jpg', '.jpeg', '.png'];
+const ALLOWED_FILE_EXTENSIONS = ['.pdf', '.zip'];
+
+const fileFilter = (
+  _req: any,
+  file: Express.Multer.File,
+  cb: (error: Error | null, acceptFile: boolean) => void,
+) => {
+  const extension = extname(file.originalname).toLowerCase();
+  const allowed =
+    file.fieldname === 'cover'
+      ? ALLOWED_COVER_EXTENSIONS
+      : ALLOWED_FILE_EXTENSIONS;
+
+  if (allowed.includes(extension)) {
+    return cb(null, true);
+  }
+
+  cb(
+    new BadRequestException(
+      `Tipo de arquivo não permitido para "${file.fieldname}": ${file.originalname}`,
+    ),
+    false,
+  );
+};
 
 @ApiTags('Products')
 @Controller('products')
@@ -86,7 +113,7 @@ export class ProductsController {
         { name: 'cover', maxCount: 1 },
         { name: 'file', maxCount: 1 },
       ],
-      { storage },
+      { storage, fileFilter },
     ),
   )
   create(
@@ -124,7 +151,7 @@ export class ProductsController {
         { name: 'cover', maxCount: 1 },
         { name: 'file', maxCount: 1 },
       ],
-      { storage },
+      { storage, fileFilter },
     ),
   )
   update(
