@@ -1,3 +1,3 @@
 export class CreatePreferencesDTO {
-    productId: string;
+  productId: string;
 }

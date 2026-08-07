@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -15,7 +16,14 @@ import {
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
-import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
+  ApiOperation,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 import { Category } from '@prisma/client';
 import { ProductsService } from './products.service';
 import { CreateProductDTO } from './dtos/create-product.dto';
@@ -30,10 +38,36 @@ const storage = diskStorage({
   },
 });
 
+const ALLOWED_COVER_EXTENSIONS = ['.jpg', '.jpeg', '.png'];
+const ALLOWED_FILE_EXTENSIONS = ['.pdf', '.zip'];
+
+const fileFilter = (
+  _req: any,
+  file: Express.Multer.File,
+  cb: (error: Error | null, acceptFile: boolean) => void,
+) => {
+  const extension = extname(file.originalname).toLowerCase();
+  const allowed =
+    file.fieldname === 'cover'
+      ? ALLOWED_COVER_EXTENSIONS
+      : ALLOWED_FILE_EXTENSIONS;
+
+  if (allowed.includes(extension)) {
+    return cb(null, true);
+  }
+
+  cb(
+    new BadRequestException(
+      `Tipo de arquivo não permitido para "${file.fieldname}": ${file.originalname}`,
+    ),
+    false,
+  );
+};
+
 @ApiTags('Products')
 @Controller('products')
 export class ProductsController {
-  constructor(private readonly productsService: ProductsService) { }
+  constructor(private readonly productsService: ProductsService) {}
 
   @Get()
   @ApiOperation({ summary: 'List all products' })
@@ -43,7 +77,8 @@ export class ProductsController {
     @Query('category') category?: Category,
     @Query('isActive') isActive?: string,
   ) {
-    const parsedIsActive = isActive !== undefined ? isActive === 'true' : undefined;
+    const parsedIsActive =
+      isActive !== undefined ? isActive === 'true' : undefined;
     return this.productsService.findAll(category, parsedIsActive);
   }
 
@@ -72,10 +107,19 @@ export class ProductsController {
       },
     },
   })
-  @UseInterceptors(FileFieldsInterceptor([{ name: 'cover', maxCount: 1 }, { name: 'file', maxCount: 1 }], { storage }))
+  @UseInterceptors(
+    FileFieldsInterceptor(
+      [
+        { name: 'cover', maxCount: 1 },
+        { name: 'file', maxCount: 1 },
+      ],
+      { storage, fileFilter },
+    ),
+  )
   create(
     @Body() dto: CreateProductDTO,
-    @UploadedFiles() files: { cover?: Express.Multer.File[]; file?: Express.Multer.File[] },
+    @UploadedFiles()
+    files: { cover?: Express.Multer.File[]; file?: Express.Multer.File[] },
   ) {
     const coverUrl = files.cover?.[0]?.filename ?? '';
     const fileUrl = files.file?.[0]?.filename ?? '';
@@ -101,11 +145,20 @@ export class ProductsController {
       },
     },
   })
-  @UseInterceptors(FileFieldsInterceptor([{ name: 'cover', maxCount: 1 }, { name: 'file', maxCount: 1 }], { storage }))
+  @UseInterceptors(
+    FileFieldsInterceptor(
+      [
+        { name: 'cover', maxCount: 1 },
+        { name: 'file', maxCount: 1 },
+      ],
+      { storage, fileFilter },
+    ),
+  )
   update(
     @Param('id') id: string,
     @Body() dto: UpdateProductDTO,
-    @UploadedFiles() files: { cover?: Express.Multer.File[]; file?: Express.Multer.File[] },
+    @UploadedFiles()
+    files: { cover?: Express.Multer.File[]; file?: Express.Multer.File[] },
   ) {
     const coverUrl = files.cover?.[0]?.filename;
     const fileUrl = files.file?.[0]?.filename;

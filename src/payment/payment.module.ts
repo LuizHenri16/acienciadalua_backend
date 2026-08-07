@@ -8,6 +8,6 @@ import { EmailModule } from '../email/email.module';
 @Module({
   imports: [ProductsModule, PrismaModule, EmailModule],
   providers: [PaymentService],
-  controllers: [PaymentController]
+  controllers: [PaymentController],
 })
-export class PaymentModule { }
+export class PaymentModule {}

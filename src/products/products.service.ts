@@ -34,7 +34,12 @@ export class ProductsService {
     });
   }
 
-  async update(id: string, dto: UpdateProductDTO, coverUrl?: string, fileUrl?: string) {
+  async update(
+    id: string,
+    dto: UpdateProductDTO,
+    coverUrl?: string,
+    fileUrl?: string,
+  ) {
     await this.findOne(id);
     return this.prisma.product.update({
       where: { id },

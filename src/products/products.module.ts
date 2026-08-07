@@ -9,10 +9,10 @@ import { JwtModule } from '../jwt/jwt.module';
   imports: [
     PrismaModule,
     MulterModule.register({ dest: './uploads' }),
-    JwtModule
+    JwtModule,
   ],
   providers: [ProductsService],
   controllers: [ProductsController],
   exports: [ProductsService],
 })
-export class ProductsModule { }
+export class ProductsModule {}
