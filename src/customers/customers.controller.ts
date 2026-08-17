@@ -1,4 +1,15 @@
-import { Controller, Get, Request, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  Request,
+  Res,
+  StreamableFile,
+  UseGuards,
+} from '@nestjs/common';
+import { createReadStream } from 'fs';
+import { extname } from 'path';
+import type { Response } from 'express';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -32,5 +43,42 @@ export class CustomersController {
   })
   getMyPurchases(@Request() req: any) {
     return this.customersService.getMyPurchases(req.customer.sub);
+  }
+
+  @Get('me/downloads/:productId')
+  @ApiOperation({
+    summary: 'Baixa o arquivo de um produto comprado',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Arquivo enviado para download',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Compra ou arquivo não encontrado',
+  })
+  async downloadProductFile(
+    @Request() req: any,
+    @Param('productId') productId: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const { path, fileUrl } =
+      await this.customersService.getDownload(req.customer.sub, productId);
+
+    const ext = extname(fileUrl).toLowerCase();
+    const mime =
+      ext === '.pdf'
+        ? 'application/pdf'
+        : ext === '.zip'
+          ? 'application/zip'
+          : 'application/octet-stream';
+
+    res.set({
+      'Content-Type': mime,
+      'Content-Disposition': `attachment; filename="${fileUrl.replace(/[^\w.\-]/g, '_')}"`,
+      'Cache-Control': 'no-store',
+    });
+
+    return new StreamableFile(createReadStream(path));
   }
 }

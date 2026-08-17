@@ -15,7 +15,8 @@ import {
 } from '@nestjs/common';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
-import { extname } from 'path';
+import { mkdirSync } from 'fs';
+import { extname, join } from 'path';
 import {
   ApiBearerAuth,
   ApiBody,
@@ -30,8 +31,13 @@ import { CreateProductDTO } from './dtos/create-product.dto';
 import { UpdateProductDTO } from './dtos/update-product.dto';
 import { JwtAdminGuard } from '../jwt/jwt-admin.guard';
 
+mkdirSync(join(process.cwd(), 'uploads'), { recursive: true });
+mkdirSync(join(process.cwd(), 'files'), { recursive: true });
+
 const storage = diskStorage({
-  destination: './uploads',
+  destination: (_req, file, cb) => {
+    cb(null, file.fieldname === 'file' ? './files' : './uploads');
+  },
   filename: (_, file, cb) => {
     const unique = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
     cb(null, `${unique}${extname(file.originalname)}`);

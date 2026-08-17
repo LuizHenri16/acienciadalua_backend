@@ -100,7 +100,7 @@ export class PaymentService {
         mercadoPagoPaymentId: String(paymentId),
         amountPaid: Number(payment.transaction_amount),
         purchasedAt: new Date(
-          payment.date_approved ?? payment.date_created ?? '',
+          payment.date_approved ?? payment.date_created ?? Date.now(),
         ),
       },
     });
