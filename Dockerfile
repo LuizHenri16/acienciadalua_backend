@@ -30,6 +30,8 @@ COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=build /app/node_modules/prisma ./node_modules/prisma
 COPY --from=build /app/node_modules/.bin ./node_modules/.bin
 
+RUN mkdir -p /app/uploads /app/files
+
 EXPOSE 3000
 
 # Executa as migrations e inicia a partir de dist/src/main (com o .js explicitado)
