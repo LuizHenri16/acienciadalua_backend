@@ -177,16 +177,29 @@ export class PaymentService {
       return;
     }
 
-    if (!payment.payer?.email) {
-      throw new InternalServerErrorException('Pagamento sem e-mail');
+    console.log('[Webhook] Dados do pagamento recebido:', JSON.stringify({
+      id: payment.id,
+      status: payment.status,
+      payer_email: payment.payer?.email,
+      payer_first_name: payment.payer?.first_name,
+      external_reference: payment.external_reference,
+      transaction_amount: payment.transaction_amount,
+    }, null, 2));
+
+    const payerEmail = payment.payer?.email ?? '';
+    const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payerEmail);
+
+    if (!isValidEmail) {
+      console.error('[Webhook] Email inválido ou ausente:', payerEmail);
+      throw new InternalServerErrorException('Pagamento sem e-mail válido');
     }
 
     const customer = await this.prismaService.customer.upsert({
-      where: { email: payment.payer.email },
+      where: { email: payerEmail },
       update: {},
       create: {
-        email: payment.payer.email,
-        name: payment.payer?.first_name ?? payment.payer.email,
+        email: payerEmail,
+        name: payment.payer?.first_name ?? payerEmail,
       },
     });
 
