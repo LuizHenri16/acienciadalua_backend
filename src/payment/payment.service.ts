@@ -3,6 +3,8 @@ import MercadoPagoConfig, { Payment, Preference } from 'mercadopago';
 import { ProductsService } from '../products/products.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
+import { ProcessPaymentDto } from './dtos/process-payment.dto';
+import { CreatePixPaymentDto } from './dtos/create-pix-payment.dto';
 
 @Injectable()
 export class PaymentService {
@@ -50,10 +52,94 @@ export class PaymentService {
       });
       return {
         init_point: response.init_point,
+        preference_id: response.id,
       };
     } catch (error) {
       console.log(error);
       throw new InternalServerErrorException(error.message);
+    }
+  }
+
+  async processPayment(dto: ProcessPaymentDto) {
+    const product = await this.productsService.findOne(dto.productId);
+
+    const paymentClient = new Payment(this.client);
+
+    try {
+      const result = await paymentClient.create({
+        body: {
+          transaction_amount: Number(product.price),
+          token: dto.token,
+          description: product.title,
+          installments: dto.installments,
+          payment_method_id: dto.payment_method_id,
+          issuer_id: Number(dto.issuer_id),
+          payer: {
+            email: dto.payer.email,
+            ...(dto.payer.name && { first_name: dto.payer.name }),
+            ...(dto.payer.identification && {
+              identification: dto.payer.identification,
+            }),
+          },
+          external_reference: product.id,
+          notification_url: process.env.MP_WEBHOOK_URL,
+        },
+      });
+
+      if (result.status === 'approved') {
+        await this.registerApprovedPayment(result);
+      }
+
+      return {
+        id: result.id,
+        status: result.status,
+        status_detail: result.status_detail,
+      };
+    } catch (error) {
+      console.error('Erro ao processar pagamento:', error);
+      throw new InternalServerErrorException(
+        error.message || 'Erro ao processar pagamento',
+      );
+    }
+  }
+
+  async createPixPayment(dto: CreatePixPaymentDto) {
+    const product = await this.productsService.findOne(dto.productId);
+
+    const paymentClient = new Payment(this.client);
+
+    try {
+      const result = await paymentClient.create({
+        body: {
+          transaction_amount: Number(product.price),
+          description: product.title,
+          payment_method_id: 'pix',
+          payer: {
+            email: dto.payer.email,
+            first_name: dto.payer.name,
+            identification: dto.payer.cpf
+              ? { type: 'CPF', number: dto.payer.cpf }
+              : undefined,
+          },
+          external_reference: product.id,
+          notification_url: process.env.MP_WEBHOOK_URL,
+        },
+      });
+
+      const pixData = (result as any).point_of_interaction?.transaction_data;
+
+      return {
+        id: result.id,
+        status: result.status,
+        qr_code: pixData?.qr_code,
+        qr_code_base64: pixData?.qr_code_base64,
+        ticket_url: pixData?.ticket_url,
+      };
+    } catch (error) {
+      console.error('Erro ao criar pagamento PIX:', error);
+      throw new InternalServerErrorException(
+        error.message || 'Erro ao criar pagamento PIX',
+      );
     }
   }
 
@@ -77,12 +163,24 @@ export class PaymentService {
       return;
     }
 
-    // Se não tiver e-mail, não será processado o pedido
+    await this.registerApprovedPayment(payment);
+  }
+
+  private async registerApprovedPayment(payment: any) {
+    const paymentId = payment.id;
+
+    const alreadyProcessed = await this.prismaService.purchase.findUnique({
+      where: { mercadoPagoPaymentId: String(paymentId) },
+    });
+
+    if (alreadyProcessed) {
+      return;
+    }
+
     if (!payment.payer?.email) {
       throw new InternalServerErrorException('Pagamento sem e-mail');
     }
 
-    // Buscar ou criar o cliente no banco de dados (upsert verifica se o cliente existe, se sim, atualiza, se não, cria)
     const customer = await this.prismaService.customer.upsert({
       where: { email: payment.payer.email },
       update: {},
@@ -92,7 +190,6 @@ export class PaymentService {
       },
     });
 
-    // Inserir a compra no banco de dados
     await this.prismaService.purchase.create({
       data: {
         customerId: customer.id,

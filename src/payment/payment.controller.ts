@@ -1,7 +1,8 @@
 import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { PaymentService } from './payment.service';
+import { ProcessPaymentDto } from './dtos/process-payment.dto';
+import { CreatePixPaymentDto } from './dtos/create-pix-payment.dto';
 import {
-  ApiBearerAuth,
   ApiOperation,
   ApiResponse,
   ApiTags,
@@ -24,6 +25,44 @@ export class PaymentController {
   @Post('create-preferences')
   createPreferences(@Body() body: { productId: string }) {
     return this.paymentService.createPreferences(body.productId);
+  }
+
+  @ApiOperation({
+    summary: 'Processa pagamento transparente (cartão)',
+    description:
+      'Recebe os dados tokenizados do cartão e processa o pagamento diretamente via API do Mercado Pago',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Pagamento processado com sucesso',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Dados inválidos',
+  })
+  @HttpCode(HttpStatus.CREATED)
+  @Post('process')
+  processPayment(@Body() dto: ProcessPaymentDto) {
+    return this.paymentService.processPayment(dto);
+  }
+
+  @ApiOperation({
+    summary: 'Cria pagamento via PIX',
+    description:
+      'Gera QR code e código copia-e-cola para pagamento via PIX',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Pagamento PIX criado com QR code',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Dados inválidos',
+  })
+  @HttpCode(HttpStatus.CREATED)
+  @Post('pix')
+  createPixPayment(@Body() dto: CreatePixPaymentDto) {
+    return this.paymentService.createPixPayment(dto);
   }
 
   @ApiOperation({
