@@ -202,6 +202,8 @@ export class PaymentService {
       },
     });
 
-    await this.emailService.sendWelcomeEmail(customer.email, customer.name);
+    await this.emailService.sendWelcomeEmail(customer.email, customer.name).catch((err) => {
+      console.error('[EmailService] Erro ao enviar e-mail de boas-vindas:', err.message);
+    });
   }
 }
