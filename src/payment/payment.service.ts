@@ -121,6 +121,10 @@ export class PaymentService {
               ? { type: 'CPF', number: dto.payer.cpf }
               : undefined,
           },
+          metadata: {
+            customer_email: dto.payer.email,
+            customer_name: dto.payer.name ?? '',
+          },
           external_reference: product.id,
           notification_url: process.env.MP_WEBHOOK_URL,
         },
@@ -177,29 +181,35 @@ export class PaymentService {
       return;
     }
 
-    console.log('[Webhook] Dados do pagamento recebido:', JSON.stringify({
+    const payerEmail = payment.payer?.email ?? '';
+    const metadataEmail = (payment as any).metadata?.customer_email ?? '';
+    const metadataName = (payment as any).metadata?.customer_name ?? '';
+
+    const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payerEmail);
+    const email = isValidEmail ? payerEmail : metadataEmail;
+
+    console.log('[Webhook] Dados do pagamento:', JSON.stringify({
       id: payment.id,
       status: payment.status,
-      payer_email: payment.payer?.email,
-      payer_first_name: payment.payer?.first_name,
-      external_reference: payment.external_reference,
-      transaction_amount: payment.transaction_amount,
+      payer_email: payerEmail,
+      metadata_email: metadataEmail,
+      metadata_name: metadataName,
+      email_final: email,
     }, null, 2));
 
-    const payerEmail = payment.payer?.email ?? '';
-    const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payerEmail);
-
-    if (!isValidEmail) {
-      console.error('[Webhook] Email inválido ou ausente:', payerEmail);
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      console.error('[Webhook] Nenhum email válido encontrado para o pagamento', paymentId);
       throw new InternalServerErrorException('Pagamento sem e-mail válido');
     }
 
+    const customerName = payment.payer?.first_name || metadataName || email;
+
     const customer = await this.prismaService.customer.upsert({
-      where: { email: payerEmail },
+      where: { email },
       update: {},
       create: {
-        email: payerEmail,
-        name: payment.payer?.first_name ?? payerEmail,
+        email,
+        name: customerName,
       },
     });
 
