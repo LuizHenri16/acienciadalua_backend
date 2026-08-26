@@ -3,7 +3,6 @@ import MercadoPagoConfig, { Payment, Preference } from 'mercadopago';
 import { ProductsService } from '../products/products.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
-import { ProcessPaymentDto } from './dtos/process-payment.dto';
 import { CreatePixPaymentDto } from './dtos/create-pix-payment.dto';
 
 @Injectable()
@@ -57,49 +56,6 @@ export class PaymentService {
     } catch (error) {
       console.log(error);
       throw new InternalServerErrorException(error.message);
-    }
-  }
-
-  async processPayment(dto: ProcessPaymentDto) {
-    const product = await this.productsService.findOne(dto.productId);
-
-    const paymentClient = new Payment(this.client);
-
-    try {
-      const result = await paymentClient.create({
-        body: {
-          transaction_amount: Number(product.price),
-          token: dto.token,
-          description: product.title,
-          installments: dto.installments,
-          payment_method_id: dto.payment_method_id,
-          issuer_id: Number(dto.issuer_id),
-          payer: {
-            email: dto.payer.email,
-            ...(dto.payer.name && { first_name: dto.payer.name }),
-            ...(dto.payer.identification && {
-              identification: dto.payer.identification,
-            }),
-          },
-          external_reference: product.id,
-          notification_url: process.env.MP_WEBHOOK_URL,
-        },
-      });
-
-      if (result.status === 'approved') {
-        await this.registerApprovedPayment(result);
-      }
-
-      return {
-        id: result.id,
-        status: result.status,
-        status_detail: result.status_detail,
-      };
-    } catch (error) {
-      console.error('Erro ao processar pagamento:', error);
-      throw new InternalServerErrorException(
-        error.message || 'Erro ao processar pagamento',
-      );
     }
   }
 
