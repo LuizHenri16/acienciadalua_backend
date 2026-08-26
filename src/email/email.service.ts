@@ -14,8 +14,10 @@ export class EmailService {
       subject: 'Bem-vindo ao A Ciência da Lua',
       html: `
                 <h1>Olá, ${name}!</h1>
-                <p>Seu pagamento foi confirmado. Acesse seus materiais pelo link abaixo:</p>
-                <a href="${process.env.FRONTEND_URL}/minha-conta/signin">Acessar minha conta</a>
+                <p>Seu pagamento foi confirmado!</p>
+                <p>Para acessar seus materiais, clique no link abaixo e crie sua senha de acesso:</p>
+                <a href="${process.env.FRONTEND_URL}/minha-conta/signin" style="display:inline-block;padding:12px 24px;background-color:#0b7a75;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:bold;">Criar minha senha</a>
+                <p style="margin-top:24px;color:#64748b;font-size:13px;">Se você não realizou esta compra, ignore este email.</p>
             `,
     });
 
