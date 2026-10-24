@@ -48,7 +48,9 @@ services:
           memory: 256M
 
   api:
-    build: .
+    build:
+      context: .
+      target: development
     container_name: acienciadalua-api
     restart: always
     ports:
@@ -58,20 +60,29 @@ services:
       - DB_USER=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
       - DB_NAME=${DB_NAME}
+      # Dentro do container o host do Postgres e "db" (o .env aponta para localhost)
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}?schema=public
       - NODE_ENV=development
+      # Sem isso o Node enxerga o limite do cgroup (512M/1G) e capa o heap em
+      # ~256MB, o que derruba o `nest start --watch` com "heap out of memory".
+      - NODE_OPTIONS=--max-old-space-size=768
     volumes:
       - .:/app
-      - /app/node_modules
+      - api_node_modules:/app/node_modules
       - ./.env:/app/.env
       - ./uploads:/app/uploads
       - ./files:/app/files
-    command: sh -c "npm install && npx prisma generate && npx prisma migrate dev && npm run start:dev"
+    command: sh -c "npx prisma generate && npx prisma migrate deploy && npm run start:dev"
     depends_on:
       - db
     deploy:
       resources:
         limits:
-          memory: 512M
+          memory: 1G
 
 volumes:
   postgres_data:
+  # Dependências instaladas na imagem de desenvolvimento. Volume nomeado para
+  # poder ser recriado com `docker volume rm acienciadalua_backend_api_node_modules`
+  # quando o package.json mudar.
+  api_node_modules:

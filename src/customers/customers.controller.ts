@@ -18,6 +18,7 @@ import {
 } from '@nestjs/swagger';
 import { CustomersService } from './customers.service';
 import { JwtCustomerGuard } from '../jwt/jwt-customer.guard';
+import type { CustomerRequest } from '../jwt/jwt.types';
 
 @ApiTags('Customers')
 @ApiBearerAuth()
@@ -29,7 +30,7 @@ export class CustomersController {
   @Get('me')
   @ApiOperation({ summary: 'Retorna os dados do customer autenticado' })
   @ApiResponse({ status: 200, description: 'Dados do customer' })
-  getMe(@Request() req: any) {
+  getMe(@Request() req: CustomerRequest) {
     return this.customersService.getMe(req.customer.sub);
   }
 
@@ -41,7 +42,7 @@ export class CustomersController {
     status: 200,
     description: 'Materiais separados em student e teacher',
   })
-  getMyPurchases(@Request() req: any) {
+  getMyPurchases(@Request() req: CustomerRequest) {
     return this.customersService.getMyPurchases(req.customer.sub);
   }
 
@@ -58,12 +59,14 @@ export class CustomersController {
     description: 'Compra ou arquivo não encontrado',
   })
   async downloadProductFile(
-    @Request() req: any,
+    @Request() req: CustomerRequest,
     @Param('productId') productId: string,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const { path, fileUrl } =
-      await this.customersService.getDownload(req.customer.sub, productId);
+    const { path, fileUrl } = await this.customersService.getDownload(
+      req.customer.sub,
+      productId,
+    );
 
     const ext = extname(fileUrl).toLowerCase();
     const mime =
@@ -75,7 +78,7 @@ export class CustomersController {
 
     res.set({
       'Content-Type': mime,
-      'Content-Disposition': `attachment; filename="${fileUrl.replace(/[^\w.\-]/g, '_')}"`,
+      'Content-Disposition': `attachment; filename="${fileUrl.replace(/[^\w.-]/g, '_')}"`,
       'Cache-Control': 'no-store',
     });
 

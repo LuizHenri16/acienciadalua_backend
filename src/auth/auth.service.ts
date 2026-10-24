@@ -17,6 +17,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { PasswordService } from './password.service';
 import 'dotenv/config';
 import { EmailService } from '../email/email.service';
+import type { AdminJwtPayload } from '../jwt/jwt.types';
 
 @Injectable()
 export class AuthService {
@@ -102,9 +103,9 @@ export class AuthService {
     };
   }
 
-  async refresh(refresh_token: string) {
+  refresh(refresh_token: string): Promise<{ access_token: string }> {
     try {
-      const payload = this.jwtService.verify(refresh_token, {
+      const payload = this.jwtService.verify<AdminJwtPayload>(refresh_token, {
         secret: process.env.JWT_REFRESH_SECRET,
       });
 
@@ -114,7 +115,7 @@ export class AuthService {
         role: payload.role,
       });
 
-      return { access_token: newAccessToken };
+      return Promise.resolve({ access_token: newAccessToken });
     } catch {
       throw new UnauthorizedException('Invalid or expired refresh token.');
     }
@@ -229,8 +230,8 @@ export class AuthService {
       where: { id: customer.id },
       data: {
         password: hashedPassword,
-        resetToken: null as any,
-        resetTokenExpiresAt: null as any,
+        resetToken: null,
+        resetTokenExpiresAt: null,
       },
     });
 

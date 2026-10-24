@@ -4,6 +4,10 @@ import { ProductsService } from '../products/products.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
 import { CreatePixPaymentDto } from './dtos/create-pix-payment.dto';
+import type {
+  MercadoPagoPayment,
+  MercadoPagoWebhookBody,
+} from './mercadopago.types';
 
 @Injectable()
 export class PaymentService {
@@ -17,6 +21,19 @@ export class PaymentService {
     this.client = new MercadoPagoConfig({
       accessToken: process.env.MERCADO_PAGO_ACCESS_TOKEN!,
     });
+  }
+
+  /**
+   * Extrai uma mensagem legível de um erro desconhecido.
+   */
+  private toErrorMessage(error: unknown): string {
+    if (error instanceof Error) {
+      return error.message;
+    }
+    if (typeof error === 'string') {
+      return error;
+    }
+    return 'Erro inesperado';
   }
 
   async createPreferences(productId: string) {
@@ -54,8 +71,8 @@ export class PaymentService {
         preference_id: response.id,
       };
     } catch (error) {
-      console.log(error);
-      throw new InternalServerErrorException(error.message);
+      console.error('Erro ao criar preferência de pagamento:', error);
+      throw new InternalServerErrorException(this.toErrorMessage(error));
     }
   }
 
@@ -65,7 +82,7 @@ export class PaymentService {
     const paymentClient = new Payment(this.client);
 
     try {
-      const result = await paymentClient.create({
+      const result: MercadoPagoPayment = await paymentClient.create({
         body: {
           transaction_amount: Number(product.price),
           description: product.title,
@@ -86,7 +103,7 @@ export class PaymentService {
         },
       });
 
-      const pixData = (result as any).point_of_interaction?.transaction_data;
+      const pixData = result.point_of_interaction?.transaction_data;
 
       return {
         id: result.id,
@@ -97,19 +114,24 @@ export class PaymentService {
       };
     } catch (error) {
       console.error('Erro ao criar pagamento PIX:', error);
-      throw new InternalServerErrorException(
-        error.message || 'Erro ao criar pagamento PIX',
-      );
+      throw new InternalServerErrorException(this.toErrorMessage(error));
     }
   }
 
-  async handleWebhook(body: any) {
+  async handleWebhook(body: MercadoPagoWebhookBody) {
     if (body.type !== 'payment') {
       return;
     }
 
-    const paymentId = body.data.id;
-    const payment = await new Payment(this.client).get({ id: paymentId });
+    const paymentId = body.data?.id;
+
+    if (paymentId === undefined) {
+      return;
+    }
+
+    const payment: MercadoPagoPayment = await new Payment(this.client).get({
+      id: paymentId,
+    });
 
     if (payment.status !== 'approved') {
       return;
@@ -126,7 +148,7 @@ export class PaymentService {
     await this.registerApprovedPayment(payment);
   }
 
-  private async registerApprovedPayment(payment: any) {
+  private async registerApprovedPayment(payment: MercadoPagoPayment) {
     const paymentId = payment.id;
 
     const alreadyProcessed = await this.prismaService.purchase.findUnique({
@@ -138,23 +160,33 @@ export class PaymentService {
     }
 
     const payerEmail = payment.payer?.email ?? '';
-    const metadataEmail = (payment as any).metadata?.customer_email ?? '';
-    const metadataName = (payment as any).metadata?.customer_name ?? '';
+    const metadataEmail = payment.metadata?.customer_email ?? '';
+    const metadataName = payment.metadata?.customer_name ?? '';
 
     const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payerEmail);
     const email = isValidEmail ? payerEmail : metadataEmail;
 
-    console.log('[Webhook] Dados do pagamento:', JSON.stringify({
-      id: payment.id,
-      status: payment.status,
-      payer_email: payerEmail,
-      metadata_email: metadataEmail,
-      metadata_name: metadataName,
-      email_final: email,
-    }, null, 2));
+    console.log(
+      '[Webhook] Dados do pagamento:',
+      JSON.stringify(
+        {
+          id: payment.id,
+          status: payment.status,
+          payer_email: payerEmail,
+          metadata_email: metadataEmail,
+          metadata_name: metadataName,
+          email_final: email,
+        },
+        null,
+        2,
+      ),
+    );
 
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      console.error('[Webhook] Nenhum email válido encontrado para o pagamento', paymentId);
+      console.error(
+        '[Webhook] Nenhum email válido encontrado para o pagamento',
+        paymentId,
+      );
       throw new InternalServerErrorException('Pagamento sem e-mail válido');
     }
 
@@ -181,8 +213,13 @@ export class PaymentService {
       },
     });
 
-    await this.emailService.sendWelcomeEmail(customer.email, customer.name).catch((err) => {
-      console.error('[EmailService] Erro ao enviar e-mail de boas-vindas:', err.message);
-    });
+    await this.emailService
+      .sendWelcomeEmail(customer.email, customer.name)
+      .catch((err) => {
+        console.error(
+          '[EmailService] Erro ao enviar e-mail de boas-vindas:',
+          this.toErrorMessage(err),
+        );
+      });
   }
 }

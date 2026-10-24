@@ -12,7 +12,25 @@ COPY . .
 RUN npx prisma generate
 RUN npm run build
 
-# Stage 3 — production: lean image with only what's needed to run
+# Stage 3 — development: todas as dependências (inclui devDeps) já instaladas.
+# Usado pelo docker-compose; evita rodar `npm install` a cada início do container
+# (que falhava ao executar o postinstall do unrs-resolver num volume montado).
+FROM node:22-alpine AS development
+WORKDIR /app
+ENV NODE_ENV=development
+# HOME do usuário `node` (uid/gid 1000) para caches do npm/prisma
+ENV HOME=/home/node
+# --chown evita um layer extra de chown: o volume de node_modules e o `dist/`
+# (bind mount) ficam graváveis pelo usuário do host (uid 1000).
+COPY --from=deps --chown=node:node /app/node_modules ./node_modules
+COPY --chown=node:node . .
+USER node
+RUN npx prisma generate
+
+EXPOSE 3000
+CMD ["npm", "run", "start:dev"]
+
+# Stage 4 — production: lean image with only what's needed to run
 FROM node:22-alpine AS production
 WORKDIR /app
 ENV NODE_ENV=production
@@ -20,7 +38,7 @@ ENV NODE_ENV=production
 COPY package*.json ./
 RUN npm ci --omit=dev
 
-# Copia o build com a estrutura mantida (dist/src/main)
+# Copia o build com a estrutura mantida (dist/main)
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/prisma ./prisma
 COPY --from=build /app/prisma.config.js ./prisma.config.js
@@ -34,5 +52,5 @@ RUN mkdir -p /app/uploads /app/files
 
 EXPOSE 3000
 
-# Executa as migrations e inicia a partir de dist/src/main (com o .js explicitado)
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/src/main.js"]
+# Executa as migrations e inicia a partir de dist/main (com o .js explicitado)
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main.js"]

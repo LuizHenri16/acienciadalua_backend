@@ -1,11 +1,8 @@
 import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { CreatePixPaymentDto } from './dtos/create-pix-payment.dto';
-import {
-  ApiOperation,
-  ApiResponse,
-  ApiTags,
-} from '@nestjs/swagger';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import type { MercadoPagoWebhookBody } from './mercadopago.types';
 
 @ApiTags('Payment')
 @Controller('payment')
@@ -28,8 +25,7 @@ export class PaymentController {
 
   @ApiOperation({
     summary: 'Cria pagamento via PIX',
-    description:
-      'Gera QR code e código copia-e-cola para pagamento via PIX',
+    description: 'Gera QR code e código copia-e-cola para pagamento via PIX',
   })
   @ApiResponse({
     status: 201,
@@ -55,7 +51,7 @@ export class PaymentController {
   })
   @HttpCode(HttpStatus.OK)
   @Post('webhook')
-  webhook(@Body() body: any) {
+  webhook(@Body() body: MercadoPagoWebhookBody) {
     return this.paymentService.handleWebhook(body);
   }
 }

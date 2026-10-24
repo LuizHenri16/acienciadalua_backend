@@ -21,7 +21,7 @@ export class AuthTokenCleanupService {
         where: {
           OR: [
             { expiresAt: { lt: new Date() } }, // Verifica se o token expirou
-            { usedAt: { not: null as any } }, // Verifica se o token foi usado
+            { usedAt: { not: null } }, // Verifica se o token foi usado
           ],
         },
       });
