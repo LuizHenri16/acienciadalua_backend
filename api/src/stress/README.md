@@ -2,7 +2,8 @@
 
 Programa Go (somente biblioteca padrão) que envia requisições HTTP contra uma
 instância da API e reporta latência, throughput, códigos de resposta e erros.
-Rode-o a partir de `api/src` com a API já em execução.
+Por padrão aponta para a API Go em `http://localhost:3001`. Rode-o a partir de
+`api/src` com a API já em execução.
 
 ```bash
 cd acienciadalua_backend/api/src
@@ -10,8 +11,11 @@ cd acienciadalua_backend/api/src
 # Leitura (padrão, sem escritas): 1000 requisições, 10 workers
 go run ./stress
 
-# 20 conexões, 30 segundos, contra a API Go na 3001
-go run ./stress -base-url=http://localhost:3001 -concurrency=20 -duration=30s
+# 20 conexões, 30 segundos
+go run ./stress -concurrency=20 -duration=30s
+
+# Para apontar para a API NestJS na 3000
+go run ./stress -base-url=http://localhost:3000
 
 # Webhooks inofensivos
 go run ./stress -scenario=webhook -requests=2000
@@ -30,7 +34,7 @@ setup/execução ou quando `-max-error-rate` é excedido.
 
 | Flag | Padrão | Descrição |
 |---|---|---|
-| `-base-url` | `http://localhost:3000` | URL base da API |
+| `-base-url` | `http://localhost:3001` | URL base da API |
 | `-scenario` | `read` | `read`, `webhook`, `auth`, `crud` ou `mixed` |
 | `-concurrency` | `10` | Workers simultâneos (cada um mantém conexões reutilizadas) |
 | `-requests` | `1000` | Total de requisições (`0` = usar só `-duration`) |
@@ -97,7 +101,7 @@ Com `-json`:
 
 ```json
 {
-  "base_url": "http://localhost:3000",
+  "base_url": "http://localhost:3001",
   "scenario": "read",
   "concurrency": 20,
   "requests": 5000,

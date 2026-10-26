@@ -90,7 +90,7 @@ func TestReportRates(t *testing.T) {
 func TestOptionsValidate(t *testing.T) {
 	base := func() *Options {
 		return &Options{
-			BaseURL:     "http://localhost:3000/",
+			BaseURL:     "http://localhost:3001/",
 			Scenario:    "read",
 			Concurrency: 2,
 			Requests:    10,
@@ -168,7 +168,7 @@ func TestOptionsValidate(t *testing.T) {
 			mutate: func(o *Options) {
 				o.Scenario = "crud"
 				o.AdminToken = "token"
-				o.BaseURL = "http://127.0.0.1:3000"
+				o.BaseURL = "http://127.0.0.1:3001"
 			},
 		},
 		{
@@ -208,7 +208,7 @@ func TestOptionsValidate(t *testing.T) {
 	if err := opts.validate(); err != nil {
 		t.Fatalf("validate() erro inesperado: %v", err)
 	}
-	if opts.BaseURL != "http://localhost:3000" {
+	if opts.BaseURL != "http://localhost:3001" {
 		t.Fatalf("BaseURL = %q, quer sem barra final", opts.BaseURL)
 	}
 }
@@ -218,11 +218,11 @@ func TestIsLocalURL(t *testing.T) {
 		raw  string
 		want bool
 	}{
-		{raw: "http://localhost:3000", want: true},
-		{raw: "http://127.0.0.1:3000", want: true},
-		{raw: "http://[::1]:3000", want: true},
-		{raw: "http://0.0.0.0:3000", want: true},
-		{raw: "http://192.168.0.10:3000", want: false},
+		{raw: "http://localhost:3001", want: true},
+		{raw: "http://127.0.0.1:3001", want: true},
+		{raw: "http://[::1]:3001", want: true},
+		{raw: "http://0.0.0.0:3001", want: true},
+		{raw: "http://192.168.0.10:3001", want: false},
 		{raw: "https://api.example.com", want: false},
 	}
 

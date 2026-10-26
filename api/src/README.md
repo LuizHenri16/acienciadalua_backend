@@ -208,8 +208,11 @@ HTTP e erros.
 ```bash
 cd api/src
 go run ./stress -scenario=read -concurrency=20 -requests=5000
-go run ./stress -base-url=http://localhost:3001 -scenario=read -duration=30s
+go run ./stress -base-url=http://localhost:3000 -scenario=read -duration=30s
 ```
+
+O padrão é a API Go em `http://localhost:3001`; use `-base-url` para apontar
+para outra instância (por exemplo, a NestJS na 3000).
 
 Cenários: `read` (padrão, sem escritas), `webhook`, `auth`, `crud` (ciclo de
 produto, exige admin e limpa o que criou) e `mixed`. Use `-max-error-rate` para

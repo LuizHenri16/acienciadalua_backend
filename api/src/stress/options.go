@@ -48,7 +48,7 @@ type Options struct {
 func parseFlags() *Options {
 	opts := &Options{}
 
-	flag.StringVar(&opts.BaseURL, "base-url", "http://localhost:3000", "URL base da API")
+	flag.StringVar(&opts.BaseURL, "base-url", "http://localhost:3001", "URL base da API")
 	flag.StringVar(&opts.Scenario, "scenario", "read", "cenário: read, webhook, auth, crud ou mixed")
 	flag.IntVar(&opts.Concurrency, "concurrency", 10, "número de workers concorrentes")
 	flag.Int64Var(&opts.Requests, "requests", 1000, "total de requisições (0 = usar apenas -duration)")

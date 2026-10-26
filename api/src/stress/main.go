@@ -1,4 +1,5 @@
-// Command stress runs load tests against a running instance of the API.
+// Command stress runs load tests against a running instance of the API
+// (default http://localhost:3001).
 //
 // It is intentionally dependency-free (standard library only) so it can be
 // executed with `go run` against local, staging or production-like
