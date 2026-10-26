@@ -1,56 +1,59 @@
-# Stage 1 — deps: install ALL dependencies (including devDeps for build)
-FROM node:22-alpine AS deps
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci
+# syntax=docker/dockerfile:1
 
-# Stage 2 — build: compile TypeScript and generate Prisma client
-FROM node:22-alpine AS build
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
-RUN npx prisma generate
-RUN npm run build
+# ─── API Go (imagem de produção usada pelo deploy da VPS) ────────────────────
+#
+# O workflow `.github/workflows/deploy.yml` constrói este arquivo com o contexto
+# na raiz do repositório e publica a imagem como
+# `<DOCKERHUB_USERNAME>/acienciadalua-backend:latest`. O serviço `backend_prod`
+# da VPS continua consumindo a mesma imagem/tag e a mesma porta interna (3000).
+#
+# O Dockerfile equivalente para uso local a partir de `api/src` é
+# `api/src/Dockerfile`. Mantenha os dois em sincronia ao alterar a imagem.
+#
+# A imagem NestJS anterior foi preservada em `Dockerfile.node` para
+# desenvolvimento local e rollback.
 
-# Stage 3 — development: todas as dependências (inclui devDeps) já instaladas.
-# Usado pelo docker-compose; evita rodar `npm install` a cada início do container
-# (que falhava ao executar o postinstall do unrs-resolver num volume montado).
-FROM node:22-alpine AS development
+# ─── build ───────────────────────────────────────────────────────────────────
+FROM golang:1.23-alpine AS build
+
+WORKDIR /src
+
+RUN apk add --no-cache ca-certificates git
+
+# Usa o go.mod do módulo que está em api/src.
+COPY api/src/go.mod api/src/go.sum ./
+RUN go mod download
+
+COPY api/src/ ./
+
+RUN CGO_ENABLED=0 GOOS=linux go build \
+    -trimpath \
+    -ldflags="-s -w" \
+    -o /out/api \
+    ./cmd/api
+
+# ─── production ──────────────────────────────────────────────────────────────
+FROM alpine:3.20 AS production
+
+RUN apk add --no-cache ca-certificates tzdata \
+    && addgroup -g 1000 app \
+    && adduser -D -u 1000 -G app app
+
 WORKDIR /app
-ENV NODE_ENV=development
-# HOME do usuário `node` (uid/gid 1000) para caches do npm/prisma
-ENV HOME=/home/node
-# --chown evita um layer extra de chown: o volume de node_modules e o `dist/`
-# (bind mount) ficam graváveis pelo usuário do host (uid 1000).
-COPY --from=deps --chown=node:node /app/node_modules ./node_modules
-COPY --chown=node:node . .
-USER node
-RUN npx prisma generate
+
+COPY --from=build /out/api /app/api
+
+# Migrations are embedded in the binary; uploads/files live in mounted volumes.
+RUN mkdir -p /app/uploads /app/files \
+    && chown -R app:app /app
+
+USER app
+
+ENV PORT=3000
 
 EXPOSE 3000
-CMD ["npm", "run", "start:dev"]
 
-# Stage 4 — production: lean image with only what's needed to run
-FROM node:22-alpine AS production
-WORKDIR /app
-ENV NODE_ENV=production
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+    CMD wget -qO- "http://127.0.0.1:${PORT}/health" || exit 1
 
-COPY package*.json ./
-RUN npm ci --omit=dev
-
-# Copia o build com a estrutura mantida (dist/main)
-COPY --from=build /app/dist ./dist
-COPY --from=build /app/prisma ./prisma
-COPY --from=build /app/prisma.config.js ./prisma.config.js
-COPY --from=build /app/node_modules/@prisma/client ./node_modules/@prisma/client
-COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
-
-COPY --from=build /app/node_modules/prisma ./node_modules/prisma
-COPY --from=build /app/node_modules/.bin ./node_modules/.bin
-
-RUN mkdir -p /app/uploads /app/files
-
-EXPOSE 3000
-
-# Executa as migrations e inicia a partir de dist/main (com o .js explicitado)
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main.js"]
+ENTRYPOINT ["/app/api"]

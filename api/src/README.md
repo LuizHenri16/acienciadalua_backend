@@ -186,7 +186,36 @@ docker compose --profile go up -d api-go   # http://localhost:3001
 ```
 
 O serviço `api-go` usa o mesmo `db` do compose, monta `./uploads` e `./files`
-e não substitui o serviço `api` (NestJS), que continua na porta 3000.
+e, no compose local, roda em paralelo ao serviço `api` (NestJS).
+
+### Deploy na VPS (imagem de produção)
+
+A imagem de produção é construída pelo `Dockerfile` da **raiz do repositório**
+(contexto `.`, que copia `api/src/`). O workflow
+`.github/workflows/deploy.yml`, em push para `main`, publica essa imagem como
+`<DOCKERHUB_USERNAME>/acienciadalua-backend:latest` e executa na VPS:
+
+```bash
+cd /root/acienciadalua
+docker compose pull backend_prod
+docker compose up -d --no-deps backend_prod
+```
+
+O serviço `backend_prod` continua usando a mesma imagem/tag e a porta interna
+`3000`, então o proxy reverso não precisa mudar. Antes do primeiro deploy,
+confirme no `.env` da VPS:
+
+- `JWT_SECRET`, `JWT_REFRESH_SECRET` e `JWT_SECRET_CUSTOMER` definidos;
+- `DATABASE_URL` apontando para o banco atual;
+- `APP_URL` e `MP_*` com as URLs públicas de produção;
+- `RUN_MIGRATIONS=true` (padrão) para aplicar o baseline idempotente;
+- `uploads/` e `files/` graváveis pelo uid `1000` (a imagem roda como `app`):
+  `chown -R 1000:1000 uploads files`;
+- remover `entrypoint`/`command` específicos de Node do serviço, se existirem.
+
+O `Dockerfile.node` preserva a imagem NestJS anterior para desenvolvimento
+local (o serviço `api` do compose usa esse arquivo) e para rollback: um
+`git revert` do commit de cutover + push para `main` reconstrói a imagem Node.
 
 ## Testes
 

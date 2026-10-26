@@ -50,6 +50,9 @@ services:
   api:
     build:
       context: .
+      # A imagem de produção (deploy da VPS) agora é a API Go e usa o
+      # Dockerfile da raiz. Este serviço continua sendo o NestJS local.
+      dockerfile: Dockerfile.node
       target: development
     container_name: acienciadalua-api
     restart: always

@@ -31,3 +31,10 @@ docker-compose.yml
 .temp
 .tmp
 README.md
+
+# Go build artifacts / local data (the root Dockerfile builds from api/src)
+api/src/uploads
+api/src/files
+api/src/bin
+api/src/coverage.out
+api/src/*.test

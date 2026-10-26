@@ -37,12 +37,13 @@ npm run start:dev
 ## Status
 - in-progress
 
-## Versão em Go (port)
+## API em Go (produção)
 
 A pasta [`api/src`](api/src) contém o port completo da API para Go (chi + sqlc +
 pgx + golang-migrate), com os mesmos endpoints, contratos HTTP e variáveis de
-ambiente. Ela não substitui a implementação NestJS — as duas podem rodar em
-paralelo para validação.
+ambiente. O `Dockerfile` da raiz — usado pela action de deploy — constrói essa
+API Go para o serviço `backend_prod` da VPS. A implementação NestJS anterior
+continua em `Dockerfile.node` para desenvolvimento local e rollback.
 
 ```bash
 cd api/src
@@ -51,8 +52,8 @@ go run ./cmd/api                      # http://localhost:3000 (Swagger em /api)
 docker compose --profile go up -d api-go   # na raiz, expõe http://localhost:3001
 ```
 
-Detalhes de arquitetura, migrations sobre um banco do Prisma, testes e
-diferenças conhecidas: [`api/src/README.md`](api/src/README.md).
+Detalhes de arquitetura, migrations sobre um banco do Prisma, deploy na VPS,
+testes e diferenças conhecidas: [`api/src/README.md`](api/src/README.md).
 
 ## Developers 
 Luiz Henrique Bastos Santana
