@@ -70,7 +70,7 @@ func (s *AuthService) SignUp(ctx context.Context, data dto.SignUpRequest) (Token
 	})
 	if err != nil {
 		if isUniqueViolation(err) {
-			return TokenPair{}, utils.Unauthorized("User already exists")
+			return TokenPair{}, utils.Unauthorized("Usuário já existe")
 		}
 		return TokenPair{}, err
 	}
@@ -81,14 +81,14 @@ func (s *AuthService) SignUp(ctx context.Context, data dto.SignUpRequest) (Token
 func (s *AuthService) SignIn(ctx context.Context, data dto.SignInRequest) (TokenPair, error) {
 	user, err := s.q.GetUserByEmail(ctx, data.Email)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return TokenPair{}, utils.Unauthorized("User email or password wrong.")
+		return TokenPair{}, utils.Unauthorized("Email ou senha de usuário incorretos.")
 	}
 	if err != nil {
 		return TokenPair{}, err
 	}
 
 	if !utils.ComparePassword(data.Password, user.Password) {
-		return TokenPair{}, utils.Unauthorized("User email or password wrong.")
+		return TokenPair{}, utils.Unauthorized("Email ou senha de usuário incorretos.")
 	}
 
 	return s.adminTokenPair(user)
@@ -97,7 +97,7 @@ func (s *AuthService) SignIn(ctx context.Context, data dto.SignInRequest) (Token
 func (s *AuthService) Refresh(refreshToken string) (string, error) {
 	claims, err := utils.VerifyAdminToken(refreshToken, s.cfg.JWTRefreshSecret)
 	if err != nil {
-		return "", utils.Unauthorized("Invalid or expired refresh token.")
+		return "", utils.Unauthorized("Token de atualização inválido ou expirado.")
 	}
 
 	accessToken, err := utils.SignAdminToken(
@@ -145,7 +145,7 @@ func (s *AuthService) adminTokenPair(user db.User) (TokenPair, error) {
 func (s *AuthService) CustomerSignIn(ctx context.Context, data dto.CustomerSignInRequest) (string, error) {
 	customer, err := s.q.GetCustomerByEmail(ctx, data.Email)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return "", utils.Unauthorized("Customer not found")
+		return "", utils.Unauthorized("Uma conta com este usuário não foi encontrado")
 	}
 	if err != nil {
 		return "", err
@@ -156,7 +156,7 @@ func (s *AuthService) CustomerSignIn(ctx context.Context, data dto.CustomerSignI
 	}
 
 	if !utils.ComparePassword(data.Password, *customer.Password) {
-		return "", utils.Unauthorized("Email or password wrong.")
+		return "", utils.Unauthorized("Email ou senha de usuário incorretos.")
 	}
 
 	return utils.SignCustomerToken(customer.ID, customer.Email, customer.Name, s.cfg.JWTSecretCustomer, customerTokenTTL)
@@ -165,14 +165,14 @@ func (s *AuthService) CustomerSignIn(ctx context.Context, data dto.CustomerSignI
 func (s *AuthService) CustomerSetPassword(ctx context.Context, data dto.CustomerSetPasswordRequest) (string, error) {
 	customer, err := s.q.GetCustomerByEmail(ctx, data.Email)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return "", utils.NotFound("Customer not found")
+		return "", utils.NotFound("Uma conta com este usuário não foi encontrado")
 	}
 	if err != nil {
 		return "", err
 	}
 
 	if customer.Password != nil {
-		return "", utils.BadRequest("Password already set. Use forgot password to reset.")
+		return "", utils.BadRequest("Senha já definida. Use a opção 'esqueci minha senha' para redefinir.")
 	}
 
 	hashedPassword, err := utils.HashPassword(data.Password)
@@ -224,7 +224,7 @@ func (s *AuthService) CustomerResetPassword(ctx context.Context, data dto.ResetP
 		ResetTokenExpiresAt: &types.Timestamp{Time: time.Now()},
 	})
 	if errors.Is(err, pgx.ErrNoRows) {
-		return "", utils.BadRequest("Invalid or expired reset token.")
+		return "", utils.BadRequest("Token de redefinição inválido ou expirado.")
 	}
 	if err != nil {
 		return "", err
@@ -252,7 +252,7 @@ func (s *AuthService) CustomerResetPassword(ctx context.Context, data dto.ResetP
 func (s *AuthService) CustomerDevToken(ctx context.Context, email string) (string, error) {
 	customer, err := s.q.GetCustomerByEmail(ctx, email)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return "", utils.Unauthorized("Customer not found")
+		return "", utils.Unauthorized("Cliente não encontrado")
 	}
 	if err != nil {
 		return "", err

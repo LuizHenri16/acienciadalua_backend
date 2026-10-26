@@ -53,7 +53,7 @@ func (s *ProductsService) FindAll(ctx context.Context, category *string, isActiv
 func (s *ProductsService) FindOne(ctx context.Context, id string) (db.Product, error) {
 	product, err := s.q.GetProductByID(ctx, id)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return db.Product{}, utils.NotFound("Product not found.")
+		return db.Product{}, utils.NotFound("Produto não encontrado.")
 	}
 	if err != nil {
 		return db.Product{}, err
@@ -141,7 +141,7 @@ func (s *ProductsService) Remove(ctx context.Context, id string) (db.Product, er
 
 	product, err := s.q.DeleteProduct(ctx, id)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return db.Product{}, utils.NotFound("Product not found.")
+		return db.Product{}, utils.NotFound("Produto não encontrado.")
 	}
 	return product, err
 }
