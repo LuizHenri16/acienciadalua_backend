@@ -493,6 +493,40 @@
         }
       }
     },
+    "/payment/status": {
+      "post": {
+        "tags": ["Payment"],
+        "summary": "Consulta o status de um pagamento PIX",
+        "description": "Valida o token assinado, consulta o Mercado Pago (fonte da verdade) e reconcilia a Purchase quando o pagamento estiver aprovado. Nunca retorna approved sem uma Purchase correspondente.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PaymentStatusRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Status do pagamento",
+            "headers": {
+              "Cache-Control": { "schema": { "type": "string", "example": "no-store" } }
+            },
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PaymentStatusResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "401": { "description": "Token ausente, inválido ou expirado." },
+          "403": { "description": "Token não corresponde ao pagamento ou produto." },
+          "404": { "description": "Pagamento não encontrado no Mercado Pago." },
+          "429": { "$ref": "#/components/responses/TooManyRequests" },
+          "503": { "description": "Mercado Pago indisponível; tentar novamente." }
+        }
+      }
+    },
     "/payment/webhook": {
       "post": {
         "tags": ["Payment"],
@@ -508,6 +542,7 @@
         },
         "responses": {
           "200": { "description": "Webhook processado com sucesso" },
+          "401": { "description": "Assinatura do webhook ausente ou inválida." },
           "500": {
             "description": "Falha ao processar o pagamento.",
             "content": {
@@ -796,7 +831,14 @@
         "required": ["productId", "payer"],
         "properties": {
           "productId": { "type": "string", "example": "uuid-do-produto" },
-          "payer": { "$ref": "#/components/schemas/PixPayerDTO" }
+          "payer": { "$ref": "#/components/schemas/PixPayerDTO" },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128,
+            "description": "Chave de idempotência do checkout. Repetir a mesma chave devolve o mesmo PIX.",
+            "example": "checkout-7f3c2a9e"
+          }
         }
       },
       "PixPayerDTO": {
@@ -822,7 +864,39 @@
           "status": { "type": "string" },
           "qr_code": { "type": "string" },
           "qr_code_base64": { "type": "string" },
-          "ticket_url": { "type": "string" }
+          "ticket_url": { "type": "string" },
+          "payment_id": { "type": "string", "description": "ID do pagamento como string, para usar em /payment/status.", "example": "987654321" },
+          "status_token": { "type": "string", "description": "Token assinado que autoriza consultar o status deste pagamento." },
+          "expires_at": { "type": "string", "format": "date-time", "description": "Expiração do QR Code PIX." }
+        }
+      },
+      "PaymentStatusRequest": {
+        "type": "object",
+        "required": ["paymentId", "token"],
+        "properties": {
+          "paymentId": { "type": "string", "example": "987654321" },
+          "token": { "type": "string", "description": "status_token devolvido por POST /payment/pix." }
+        }
+      },
+      "PaymentStatusResponse": {
+        "type": "object",
+        "required": ["paymentId", "status", "providerStatus", "productId", "accessGranted", "retryable"],
+        "properties": {
+          "paymentId": { "type": "string" },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "approved", "rejected", "expired", "refunded", "error"],
+            "description": "Estado normalizado. Somente approved com accessGranted=true libera o sucesso."
+          },
+          "providerStatus": { "type": "string", "description": "Status bruto do Mercado Pago." },
+          "statusDetail": { "type": "string" },
+          "productId": { "type": "string" },
+          "amount": { "type": "string", "example": "59.90" },
+          "purchaseId": { "type": "string", "nullable": true },
+          "accessGranted": { "type": "boolean", "description": "true somente quando existe uma Purchase correspondente." },
+          "approvedAt": { "type": "string", "format": "date-time", "nullable": true },
+          "expiresAt": { "type": "string", "format": "date-time", "nullable": true },
+          "retryable": { "type": "boolean", "description": "Indica se o cliente deve continuar consultando." }
         }
       },
       "MercadoPagoWebhookBody": {

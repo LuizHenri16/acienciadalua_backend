@@ -48,9 +48,18 @@ type Config struct {
 	// Mercado Pago
 	MercadoPagoAccessToken string
 	MPWebhookURL           string
+	MPWebhookSecret        string
 	MPSuccessURL           string
 	MPFailureURL           string
 	MPPendingURL           string
+	MPPixExpiration        time.Duration
+	MPStatusTimeout        time.Duration
+
+	// Payment status/reconciliation
+	PaymentStatusSecret      string
+	PaymentStatusTTL         time.Duration
+	PaymentReconcileEnabled  bool
+	PaymentReconcileInterval time.Duration
 
 	// Storage
 	UploadDir string
@@ -81,12 +90,46 @@ func Load() (*Config, error) {
 		ContactEmail:           envOrDefault("CONTACT_EMAIL", "contato@acienciadalua.com.br"),
 		MercadoPagoAccessToken: os.Getenv("MERCADO_PAGO_ACCESS_TOKEN"),
 		MPWebhookURL:           os.Getenv("MP_WEBHOOK_URL"),
+		MPWebhookSecret:        os.Getenv("MP_WEBHOOK_SECRET"),
 		MPSuccessURL:           os.Getenv("MP_SUCCESS_URL"),
 		MPFailureURL:           os.Getenv("MP_FAILURE_URL"),
 		MPPendingURL:           os.Getenv("MP_PENDING_URL"),
 		UploadDir:              envOrDefault("UPLOAD_DIR", "uploads"),
 		FilesDir:               envOrDefault("FILES_DIR", "files"),
 	}
+
+	// The status token is a capability for the payment endpoint. Falling back
+	// to the customer secret keeps existing deployments working without a new
+	// mandatory variable.
+	cfg.PaymentStatusSecret = os.Getenv("PAYMENT_STATUS_SECRET")
+	if cfg.PaymentStatusSecret == "" {
+		cfg.PaymentStatusSecret = cfg.JWTSecretCustomer
+	}
+
+	paymentStatusTTL, err := ParseDuration(envOrDefault("PAYMENT_STATUS_TTL", "24h"))
+	if err != nil {
+		return nil, fmt.Errorf("invalid PAYMENT_STATUS_TTL: %w", err)
+	}
+	cfg.PaymentStatusTTL = paymentStatusTTL
+
+	pixExpiration, err := ParseDuration(envOrDefault("MP_PIX_EXPIRATION", "30m"))
+	if err != nil {
+		return nil, fmt.Errorf("invalid MP_PIX_EXPIRATION: %w", err)
+	}
+	cfg.MPPixExpiration = pixExpiration
+
+	statusTimeout, err := ParseDuration(envOrDefault("MP_STATUS_TIMEOUT", "5s"))
+	if err != nil {
+		return nil, fmt.Errorf("invalid MP_STATUS_TIMEOUT: %w", err)
+	}
+	cfg.MPStatusTimeout = statusTimeout
+
+	reconcileInterval, err := ParseDuration(envOrDefault("PAYMENT_RECONCILE_INTERVAL", "2m"))
+	if err != nil {
+		return nil, fmt.Errorf("invalid PAYMENT_RECONCILE_INTERVAL: %w", err)
+	}
+	cfg.PaymentReconcileInterval = reconcileInterval
+	cfg.PaymentReconcileEnabled = envBool("PAYMENT_RECONCILE_ENABLED", true)
 
 	frontendURL := os.Getenv("FRONTEND_URL")
 	if frontendURL == "" {

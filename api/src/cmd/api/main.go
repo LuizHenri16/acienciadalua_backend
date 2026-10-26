@@ -77,6 +77,14 @@ func run(logger *slog.Logger) error {
 	}
 	defer scheduler.Stop()
 
+	if cfg.PaymentReconcileEnabled {
+		reconcileScheduler, err := jobs.StartPaymentReconciliation(paymentService, cfg.PaymentReconcileInterval, logger)
+		if err != nil {
+			return fmt.Errorf("starting payment reconciliation job: %w", err)
+		}
+		defer reconcileScheduler.Stop()
+	}
+
 	server := &http.Server{
 		Addr:              cfg.Addr(),
 		Handler:           buildRouter(cfg, handlerSet, logger),
@@ -165,6 +173,7 @@ func buildRouter(cfg *config.Config, h *handlers.Handlers, logger *slog.Logger) 
 	router.Route("/payment", func(r chi.Router) {
 		r.Post("/create-preferences", h.CreatePreferences)
 		r.Post("/pix", h.CreatePixPayment)
+		r.With(throttle(60, time.Minute)).Post("/status", h.GetPaymentStatus)
 		r.Post("/webhook", h.Webhook)
 	})
 

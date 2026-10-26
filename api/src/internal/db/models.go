@@ -65,6 +65,27 @@ type Customer struct {
 	ResetTokenExpiresAt *types.Timestamp `json:"resetTokenExpiresAt"`
 }
 
+type PaymentIntent struct {
+	ID                   string           `json:"id"`
+	MercadoPagoPaymentId string           `json:"mercadoPagoPaymentId"`
+	ProductId            string           `json:"productId"`
+	CustomerEmail        string           `json:"customerEmail"`
+	CustomerName         string           `json:"customerName"`
+	Amount               types.Decimal    `json:"amount"`
+	Status               string           `json:"status"`
+	StatusDetail         string           `json:"statusDetail"`
+	QrCode               *string          `json:"qrCode"`
+	QrCodeBase64         *string          `json:"qrCodeBase64"`
+	TicketUrl            *string          `json:"ticketUrl"`
+	ExpiresAt            *types.Timestamp `json:"expiresAt"`
+	ApprovedAt           *types.Timestamp `json:"approvedAt"`
+	PurchaseId           *string          `json:"purchaseId"`
+	IdempotencyKey       string           `json:"idempotencyKey"`
+	LastCheckedAt        *types.Timestamp `json:"lastCheckedAt"`
+	CreatedAt            types.Timestamp  `json:"createdAt"`
+	UpdatedAt            types.Timestamp  `json:"updatedAt"`
+}
+
 type Product struct {
 	ID          string          `json:"id"`
 	Title       string          `json:"title"`

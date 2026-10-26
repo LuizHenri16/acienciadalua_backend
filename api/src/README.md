@@ -81,8 +81,8 @@ existente funciona sem alterações:
 `DATABASE_URL`, `JWT_SECRET`, `JWT_EXPIRES_IN`, `JWT_REFRESH_SECRET`,
 `JWT_REFRESH_EXPIRES_IN`, `JWT_SECRET_CUSTOMER`, `NODE_ENV`, `PORT`, `APP_URL`,
 `RESEND_API_KEY`, `EMAIL_SENDER_ADDRESS`, `CONTACT_EMAIL`,
-`MERCADO_PAGO_ACCESS_TOKEN`, `MP_WEBHOOK_URL`, `MP_SUCCESS_URL`,
-`MP_FAILURE_URL`, `MP_PENDING_URL`.
+`MERCADO_PAGO_ACCESS_TOKEN`, `MP_WEBHOOK_URL`, `MP_WEBHOOK_SECRET`,
+`MP_SUCCESS_URL`, `MP_FAILURE_URL`, `MP_PENDING_URL`.
 
 Variáveis opcionais (só da versão Go):
 
@@ -93,6 +93,12 @@ Variáveis opcionais (só da versão Go):
 | `RUN_MIGRATIONS` | `true` | roda as migrations embutidas ao iniciar |
 | `UPLOAD_DIR` | `uploads` | diretório servido em `/uploads` |
 | `FILES_DIR` | `files` | diretório dos arquivos para download |
+| `PAYMENT_STATUS_SECRET` | `JWT_SECRET_CUSTOMER` | segredo do token de status do PIX |
+| `PAYMENT_STATUS_TTL` | `24h` | validade do token de status |
+| `MP_PIX_EXPIRATION` | `30m` | validade do QR Code PIX |
+| `MP_STATUS_TIMEOUT` | `5s` | timeout da consulta de status ao MP |
+| `PAYMENT_RECONCILE_ENABLED` | `true` | liga a reconciliação de pendentes |
+| `PAYMENT_RECONCILE_INTERVAL` | `2m` | intervalo da reconciliação |
 
 > `JWT_EXPIRES_IN`/`JWT_REFRESH_EXPIRES_IN` aceitam o formato do
 > `jsonwebtoken` (`1h`, `7d`, `30m`) e também segundos (`3600`).
@@ -144,7 +150,8 @@ Idênticos ao NestJS (mesmos paths, bodies e formatos de resposta):
 | DELETE | `/products/:id` | admin |
 | POST | `/payment/create-preferences` | — |
 | POST | `/payment/pix` | — |
-| POST | `/payment/webhook` | — |
+| POST | `/payment/status` | token de status |
+| POST | `/payment/webhook` | assinatura do MP (quando configurada) |
 | POST | `/contact` | — |
 | GET | `/customers/me` | customer |
 | GET | `/customers/me/purchases` | customer |
@@ -168,6 +175,28 @@ admin; 10 req/15min em `/auth/user/signin`; 3 req/15min em
   permitidas (`.jpg/.jpeg/.png` e `.pdf/.zip`).
 - Webhook do Mercado Pago idempotente por `mercadoPagoPaymentId` (índice único +
   `ON CONFLICT DO NOTHING` dentro de transação).
+
+### Confirmação de pagamento PIX
+
+O Mercado Pago é a fonte da verdade. O frontend nunca declara um pagamento como
+pago: ele envia o `paymentId` e o `status_token` devolvidos por `/payment/pix`
+para `POST /payment/status`.
+
+```json
+POST /payment/status
+{ "paymentId": "987654321", "token": "<status_token>" }
+```
+
+A resposta traz `status` normalizado (`pending`, `approved`, `rejected`,
+`expired`, `refunded`, `error`) e `accessGranted`. `approved` só é retornado com
+`accessGranted: true` quando existe uma `Purchase` correspondente; o endpoint
+reconcilia a compra de forma idempotente quando o MP informa `approved`.
+
+A tabela aditiva `PaymentIntent` guarda o ciclo de vida do PIX (criada pela
+migration `000002_payment_intent`). O webhook, o endpoint de status e o job de
+reconciliação (`PAYMENT_RECONCILE_INTERVAL`) convergem para o mesmo
+`ensurePurchase`, portanto qualquer um deles cobre um webhook perdido. A
+criação de PIX aceita `idempotencyKey` e repete o mesmo QR em retries.
 
 ## Docker
 
