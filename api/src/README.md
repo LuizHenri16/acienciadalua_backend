@@ -42,6 +42,7 @@ api/src/
 ├── sql/queries/                # queries do sqlc
 ├── sql/schema.sql              # hint de tipos para o sqlc (não executado)
 ├── sqlc.yaml
+├── stress/                     # teste de estresse (programa Go independente)
 ├── Dockerfile
 └── go.mod
 ```
@@ -69,6 +70,7 @@ make test-integration   # requer TEST_DATABASE_URL (trunca tabelas!)
 make fmt vet            # gofmt + go vet
 make sqlc               # regenera internal/db (sqlc v1.27+)
 make docker-build       # docker build -t acienciadalua-api-go .
+make stress STRESS_ARGS="-scenario=read -requests=5000"  # carga (API no ar)
 ```
 
 ## Variáveis de ambiente
@@ -196,6 +198,23 @@ TEST_DATABASE_URL='postgresql://test:test@localhost:5432/acienciadalua?schema=pu
 
 Os testes de integração truncam `Purchase`, `AuthToken`, `Product`, `Customer`
 e `User` — use um banco descartável.
+
+## Teste de estresse
+
+`stress/` é um programa Go independente (só biblioteca padrão) que envia
+requisições contra uma API em execução e reporta latência, throughput, códigos
+HTTP e erros.
+
+```bash
+cd api/src
+go run ./stress -scenario=read -concurrency=20 -requests=5000
+go run ./stress -base-url=http://localhost:3001 -scenario=read -duration=30s
+```
+
+Cenários: `read` (padrão, sem escritas), `webhook`, `auth`, `crud` (ciclo de
+produto, exige admin e limpa o que criou) e `mixed`. Use `-max-error-rate` para
+falhar em CI e `-json` para saída legível por máquina. Flags, avisos de rate
+limit e cuidados com escritas estão em [`stress/README.md`](stress/README.md).
 
 ## Diferenças conhecidas (menores)
 

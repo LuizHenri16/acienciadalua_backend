@@ -1,4 +1,4 @@
-.PHONY: run build test test-integration fmt vet sqlc docker-build
+.PHONY: run build test test-integration fmt vet sqlc docker-build stress
 
 # Local development (reads .env when present).
 run:
@@ -26,3 +26,8 @@ sqlc:
 
 docker-build:
 	docker build -t acienciadalua-api-go .
+
+# Teste de estresse (a API precisa estar no ar). Passe as flags em STRESS_ARGS.
+# Ex.: make stress STRESS_ARGS="-scenario=read -requests=5000 -concurrency=20"
+stress:
+	go run ./stress $(STRESS_ARGS)
