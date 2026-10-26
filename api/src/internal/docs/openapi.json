@@ -1,0 +1,918 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "A Ciência da Lua - API",
+    "description": "API responsible for A Ciência da Lua.",
+    "version": "0.0.2",
+    "contact": {}
+  },
+  "tags": [
+    { "name": "Auth", "description": "Admin and customer authentication" },
+    { "name": "Products", "description": "Product catalog" },
+    { "name": "Customers", "description": "Authenticated customer area" },
+    { "name": "Payment", "description": "Mercado Pago checkout and webhook" },
+    { "name": "Contact", "description": "Website contact form" }
+  ],
+  "paths": {
+    "/auth/admin/signup": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Register a new user",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/SignUpDTO" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User created successfully.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AdminTokenResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "401": {
+            "description": "User already exists.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "429": { "$ref": "#/components/responses/TooManyRequests" }
+        }
+      }
+    },
+    "/auth/admin/signin": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Authenticate user and return tokens",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/SignInDTO" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User signed in successfully.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AdminTokenResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "401": {
+            "description": "Invalid email or password.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "429": { "$ref": "#/components/responses/TooManyRequests" }
+        }
+      }
+    },
+    "/auth/admin/refresh": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Generate a new access_token using a refresh_token",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/RefreshDTO" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "New access_token generated successfully.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AccessTokenResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "401": {
+            "description": "Invalid or expired refresh token.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "429": { "$ref": "#/components/responses/TooManyRequests" }
+        }
+      }
+    },
+    "/auth/user/signin": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Sign in with email and password",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CustomerSigninDTO" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User signed in successfully.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AccessTokenResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "401": {
+            "description": "Invalid email/password or no password set.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "429": { "$ref": "#/components/responses/TooManyRequests" }
+        }
+      }
+    },
+    "/auth/user/password": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Set initial password (first access)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CustomerSetPasswordDTO" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password set successfully.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AccessTokenResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "404": {
+            "description": "Customer not found.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "429": { "$ref": "#/components/responses/TooManyRequests" }
+        }
+      }
+    },
+    "/auth/user/forgot-password": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Send reset password email",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ForgotPasswordDTO" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Reset email sent if email exists.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MessageResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "429": { "$ref": "#/components/responses/TooManyRequests" }
+        }
+      }
+    },
+    "/auth/user/reset-password": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Reset password using token from email",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ResetPasswordDTO" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password reset successfully.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AccessTokenResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "429": { "$ref": "#/components/responses/TooManyRequests" }
+        }
+      }
+    },
+    "/products": {
+      "get": {
+        "tags": ["Products"],
+        "summary": "List all products",
+        "parameters": [
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "enum": ["STUDENT", "TEACHER"] }
+          },
+          {
+            "name": "isActive",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "boolean" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Product list ordered by createdAt desc.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Product" }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" }
+        }
+      },
+      "post": {
+        "tags": ["Products"],
+        "summary": "Create a new product",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["title", "description", "price", "isActive", "category"],
+                "properties": {
+                  "title": { "type": "string" },
+                  "description": { "type": "string" },
+                  "price": { "type": "number" },
+                  "isActive": { "type": "boolean" },
+                  "category": { "type": "string", "enum": ["STUDENT", "TEACHER"] },
+                  "cover": { "type": "string", "format": "binary" },
+                  "file": { "type": "string", "format": "binary" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Product created.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Product" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/products/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string" }
+        }
+      ],
+      "get": {
+        "tags": ["Products"],
+        "summary": "Get product by id",
+        "responses": {
+          "200": {
+            "description": "Product found.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Product" }
+              }
+            }
+          },
+          "404": {
+            "description": "Product not found.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["Products"],
+        "summary": "Update a product",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": { "type": "string" },
+                  "description": { "type": "string" },
+                  "price": { "type": "number" },
+                  "isActive": { "type": "boolean" },
+                  "category": { "type": "string", "enum": ["STUDENT", "TEACHER"] },
+                  "cover": { "type": "string", "format": "binary" },
+                  "file": { "type": "string", "format": "binary" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Product updated.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Product" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": {
+            "description": "Product not found.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Products"],
+        "summary": "Delete a product",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Deleted product.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Product" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": {
+            "description": "Product not found.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          }
+        }
+      }
+    },
+    "/products/{id}/toggle": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string" }
+        }
+      ],
+      "patch": {
+        "tags": ["Products"],
+        "summary": "Toggle product isActive status",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Product toggled.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Product" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": {
+            "description": "Product not found.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          }
+        }
+      }
+    },
+    "/payment/create-preferences": {
+      "post": {
+        "tags": ["Payment"],
+        "summary": "Cria uma preferência para pagamento",
+        "description": "Cria uma preferência para pagamento com o ID do produto",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreatePreferencesDTO" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Preferência criada com sucesso",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PreferenceResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "404": {
+            "description": "Product not found.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "500": {
+            "description": "Mercado Pago error.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          }
+        }
+      }
+    },
+    "/payment/pix": {
+      "post": {
+        "tags": ["Payment"],
+        "summary": "Cria pagamento via PIX",
+        "description": "Gera QR code e código copia-e-cola para pagamento via PIX",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreatePixPaymentDTO" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Pagamento PIX criado com QR code",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PixPaymentResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "500": {
+            "description": "Mercado Pago error.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          }
+        }
+      }
+    },
+    "/payment/webhook": {
+      "post": {
+        "tags": ["Payment"],
+        "summary": "Webhook do Mercado Pago",
+        "description": "Webhook do Mercado Pago para processar pagamentos. Idempotente por mercadoPagoPaymentId.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/MercadoPagoWebhookBody" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Webhook processado com sucesso" },
+          "500": {
+            "description": "Falha ao processar o pagamento.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          }
+        }
+      }
+    },
+    "/contact": {
+      "post": {
+        "tags": ["Contact"],
+        "summary": "Send a contact message from the website form",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ContactDTO" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Message sent successfully.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MessageResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "500": {
+            "description": "Failed to send message.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          }
+        }
+      }
+    },
+    "/customers/me": {
+      "get": {
+        "tags": ["Customers"],
+        "summary": "Retorna os dados do customer autenticado",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Dados do customer",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Customer" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": {
+            "description": "Customer not found.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          }
+        }
+      }
+    },
+    "/customers/me/purchases": {
+      "get": {
+        "tags": ["Customers"],
+        "summary": "Retorna as compras do customer separadas por categoria",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Materiais separados em student e teacher",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MyPurchasesResponse" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/customers/me/downloads/{productId}": {
+      "parameters": [
+        {
+          "name": "productId",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string" }
+        }
+      ],
+      "get": {
+        "tags": ["Customers"],
+        "summary": "Baixa o arquivo de um produto comprado",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Arquivo enviado para download",
+            "content": {
+              "application/octet-stream": {
+                "schema": { "type": "string", "format": "binary" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": {
+            "description": "Compra ou arquivo não encontrado",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "Container healthcheck (extra endpoint)",
+        "responses": {
+          "200": {
+            "description": "Service is up.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "status": { "type": "string", "example": "ok" } }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "responses": {
+      "Unauthorized": {
+        "description": "Missing, invalid or expired token.",
+        "content": {
+          "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+        }
+      },
+      "ValidationError": {
+        "description": "Validation error.",
+        "content": {
+          "application/json": { "schema": { "$ref": "#/components/schemas/ValidationError" } }
+        }
+      },
+      "TooManyRequests": {
+        "description": "Rate limit exceeded.",
+        "content": {
+          "application/json": { "schema": { "$ref": "#/components/schemas/ThrottlerError" } }
+        }
+      }
+    },
+    "schemas": {
+      "SignUpDTO": {
+        "type": "object",
+        "required": ["name", "email", "password"],
+        "properties": {
+          "name": { "type": "string", "minLength": 3, "example": "Luana Araujo", "description": "Full name of the user" },
+          "email": { "type": "string", "format": "email", "example": "luana@gmail.com", "description": "User email address" },
+          "role": { "type": "string", "example": "admin", "description": "User role (default: collaborator)" },
+          "password": { "type": "string", "minLength": 8, "example": "password123", "description": "Password with at least 8 characters" }
+        }
+      },
+      "SignInDTO": {
+        "type": "object",
+        "required": ["email", "password"],
+        "properties": {
+          "email": { "type": "string", "format": "email", "example": "luana@gmail.com" },
+          "password": { "type": "string", "minLength": 8, "example": "password123" }
+        }
+      },
+      "RefreshDTO": {
+        "type": "object",
+        "required": ["refresh_token"],
+        "properties": {
+          "refresh_token": { "type": "string", "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." }
+        }
+      },
+      "CustomerSigninDTO": {
+        "type": "object",
+        "required": ["email", "password"],
+        "properties": {
+          "email": { "type": "string", "format": "email", "example": "luana@gmail.com" },
+          "password": { "type": "string", "example": "password123" }
+        }
+      },
+      "CustomerSetPasswordDTO": {
+        "type": "object",
+        "required": ["email", "password"],
+        "properties": {
+          "email": { "type": "string", "format": "email", "example": "luana@gmail.com" },
+          "password": { "type": "string", "minLength": 8, "example": "password123" }
+        }
+      },
+      "ForgotPasswordDTO": {
+        "type": "object",
+        "required": ["email"],
+        "properties": {
+          "email": { "type": "string", "format": "email", "example": "luana@gmail.com" }
+        }
+      },
+      "ResetPasswordDTO": {
+        "type": "object",
+        "required": ["token", "password"],
+        "properties": {
+          "token": { "type": "string", "example": "uuid-token" },
+          "password": { "type": "string", "minLength": 8, "example": "newpassword123" }
+        }
+      },
+      "AdminTokenResponse": {
+        "type": "object",
+        "properties": {
+          "message": { "type": "string", "example": "User signed in successfully" },
+          "access_token": { "type": "string" },
+          "refresh_token": { "type": "string" }
+        }
+      },
+      "AccessTokenResponse": {
+        "type": "object",
+        "properties": {
+          "message": { "type": "string", "example": "Signed in successfully" },
+          "access_token": { "type": "string" }
+        }
+      },
+      "MessageResponse": {
+        "type": "object",
+        "properties": {
+          "message": { "type": "string" }
+        }
+      },
+      "Product": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "title": { "type": "string" },
+          "description": { "type": "string" },
+          "price": { "type": "string", "example": "49.9", "description": "Prisma-compatible decimal serialized as string" },
+          "coverUrl": { "type": "string" },
+          "fileUrl": { "type": "string" },
+          "category": { "type": "string", "enum": ["STUDENT", "TEACHER"] },
+          "isActive": { "type": "boolean" },
+          "createdAt": { "type": "string", "format": "date-time", "example": "2026-10-24T16:33:00.000Z" },
+          "updatedAt": { "type": "string", "format": "date-time", "example": "2026-10-24T16:33:00.000Z" }
+        }
+      },
+      "CreateProductDTO": {
+        "type": "object",
+        "required": ["title", "description", "price", "isActive", "category"],
+        "properties": {
+          "title": { "type": "string", "example": "Apostila de Química" },
+          "description": { "type": "string", "example": "Material completo para o ENEM." },
+          "price": { "type": "number", "example": 49.9 },
+          "isActive": { "type": "boolean", "example": true },
+          "category": { "type": "string", "enum": ["STUDENT", "TEACHER"] }
+        }
+      },
+      "UpdateProductDTO": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string" },
+          "description": { "type": "string" },
+          "price": { "type": "number" },
+          "isActive": { "type": "boolean" },
+          "category": { "type": "string", "enum": ["STUDENT", "TEACHER"] }
+        }
+      },
+      "CreatePreferencesDTO": {
+        "type": "object",
+        "required": ["productId"],
+        "properties": {
+          "productId": { "type": "string", "example": "uuid-do-produto" }
+        }
+      },
+      "CreatePixPaymentDTO": {
+        "type": "object",
+        "required": ["productId", "payer"],
+        "properties": {
+          "productId": { "type": "string", "example": "uuid-do-produto" },
+          "payer": { "$ref": "#/components/schemas/PixPayerDTO" }
+        }
+      },
+      "PixPayerDTO": {
+        "type": "object",
+        "required": ["email"],
+        "properties": {
+          "email": { "type": "string", "format": "email", "example": "comprador@email.com" },
+          "name": { "type": "string", "example": "João Silva" },
+          "cpf": { "type": "string", "example": "12345678909" }
+        }
+      },
+      "PreferenceResponse": {
+        "type": "object",
+        "properties": {
+          "init_point": { "type": "string" },
+          "preference_id": { "type": "string" }
+        }
+      },
+      "PixPaymentResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "status": { "type": "string" },
+          "qr_code": { "type": "string" },
+          "qr_code_base64": { "type": "string" },
+          "ticket_url": { "type": "string" }
+        }
+      },
+      "MercadoPagoWebhookBody": {
+        "type": "object",
+        "properties": {
+          "type": { "type": "string", "example": "payment" },
+          "action": { "type": "string", "example": "payment.created" },
+          "data": {
+            "type": "object",
+            "properties": {
+              "id": { "oneOf": [{ "type": "string" }, { "type": "integer" }], "example": "123456789" }
+            }
+          }
+        }
+      },
+      "ContactDTO": {
+        "type": "object",
+        "required": ["name", "email", "message"],
+        "properties": {
+          "name": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "subject": { "type": "string" },
+          "message": { "type": "string" }
+        }
+      },
+      "Customer": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "email": { "type": "string", "format": "email" },
+          "name": { "type": "string" },
+          "isActive": { "type": "boolean" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" },
+          "password": { "type": "string", "nullable": true },
+          "resetToken": { "type": "string", "nullable": true },
+          "resetTokenExpiresAt": { "type": "string", "format": "date-time", "nullable": true }
+        }
+      },
+      "MyPurchasesResponse": {
+        "type": "object",
+        "properties": {
+          "student": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/PurchaseProduct" }
+          },
+          "teacher": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/PurchaseProduct" }
+          }
+        }
+      },
+      "PurchaseProduct": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "title": { "type": "string" },
+          "description": { "type": "string" },
+          "coverUrl": { "type": "string" },
+          "fileUrl": { "type": "string" },
+          "category": { "type": "string", "enum": ["STUDENT", "TEACHER"] },
+          "purchasedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "message": { "type": "string" },
+          "error": { "type": "string" },
+          "statusCode": { "type": "integer" }
+        }
+      },
+      "ValidationError": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "error": { "type": "string", "example": "Bad Request" },
+          "statusCode": { "type": "integer", "example": 400 }
+        }
+      },
+      "ThrottlerError": {
+        "type": "object",
+        "properties": {
+          "statusCode": { "type": "integer", "example": 429 },
+          "message": { "type": "string", "example": "ThrottlerException: Too Many Requests" }
+        }
+      }
+    }
+  }
+}

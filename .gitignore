@@ -59,3 +59,13 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 # Core dumps (crash do Node)
 core.*
+
+# ─── Go (api/src) ────────────────────────────────────────────────────────────
+/api/src/bin
+/api/src/coverage.out
+*.test
+# Conteúdo de uploads/downloads locais; apenas os .gitkeep são versionados.
+/api/src/uploads/*
+/api/src/files/*
+!/api/src/uploads/.gitkeep
+!/api/src/files/.gitkeep

@@ -80,6 +80,56 @@ services:
         limits:
           memory: 1G
 
+  # ─── API em Go (port do NestJS) ─────────────────────────────────────────────
+  # Roda em paralelo com a API Node para validação. O profile "go" evita que ela
+  # suba em `docker compose up` sem intenção:
+  #
+  #   docker compose --profile go up -d api-go
+  #
+  # A porta 3000 continua sendo da API Node; a versão Go expõe 3001 por padrão
+  # (ajuste com API_GO_PORT no .env para comparar respostas lado a lado).
+  api-go:
+    profiles: ["go"]
+    build:
+      context: ./api/src
+      target: production
+    container_name: acienciadalua-api-go
+    restart: always
+    ports:
+      - "${API_GO_PORT:-3001}:3000"
+    environment:
+      # Dentro do container o host do Postgres é "db". A API remove o
+      # ?schema=public antes de conectar (pgx não conhece esse parâmetro).
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}?schema=public
+      - NODE_ENV=${NODE_ENV:-production}
+      - PORT=3000
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-1h}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - JWT_REFRESH_EXPIRES_IN=${JWT_REFRESH_EXPIRES_IN:-7d}
+      - JWT_SECRET_CUSTOMER=${JWT_SECRET_CUSTOMER}
+      - APP_URL=${APP_URL:-http://localhost:3001}
+      - FRONTEND_URL=${FRONTEND_URL:-}
+      - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - EMAIL_SENDER_ADDRESS=${EMAIL_SENDER_ADDRESS:-}
+      - CONTACT_EMAIL=${CONTACT_EMAIL:-}
+      - MERCADO_PAGO_ACCESS_TOKEN=${MERCADO_PAGO_ACCESS_TOKEN:-}
+      - MP_WEBHOOK_URL=${MP_WEBHOOK_URL:-}
+      - MP_SUCCESS_URL=${MP_SUCCESS_URL:-}
+      - MP_FAILURE_URL=${MP_FAILURE_URL:-}
+      - MP_PENDING_URL=${MP_PENDING_URL:-}
+      # Migrations embutidas no binário (idempotentes sobre bases do Prisma).
+      - RUN_MIGRATIONS=true
+    volumes:
+      - ./uploads:/app/uploads
+      - ./files:/app/files
+    depends_on:
+      - db
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
 volumes:
   postgres_data:
   # Dependências instaladas na imagem de desenvolvimento. Volume nomeado para
