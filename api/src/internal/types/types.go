@@ -1,9 +1,9 @@
 // Package types holds the database value types shared between the sqlc layer
 // and the HTTP layer.
 //
-// They exist to keep the JSON contract identical to the previous Prisma API:
-//   - Prisma `Decimal` is serialized as a JSON string (e.g. "49.9");
-//   - Prisma `DateTime` is serialized as an ISO-8601 UTC string with exactly
+// They define the JSON contract of the API:
+//   - numeric values are serialized as JSON strings (e.g. "49.9");
+//   - timestamps are serialized as ISO-8601 UTC strings with exactly
 //     millisecond precision (e.g. "2026-10-24T16:33:00.000Z").
 package types
 
@@ -16,8 +16,7 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-// Decimal is a PostgreSQL numeric value serialized as a JSON string, matching
-// Prisma's Decimal serialization.
+// Decimal is a PostgreSQL numeric value serialized as a JSON string.
 type Decimal struct {
 	decimal.Decimal
 }
@@ -76,7 +75,7 @@ func (d Decimal) Value() (driver.Value, error) {
 	return d.Decimal.String(), nil
 }
 
-// MarshalJSON renders the value as a JSON string, like Prisma's Decimal.
+// MarshalJSON renders the value as a JSON string.
 func (d Decimal) MarshalJSON() ([]byte, error) {
 	return json.Marshal(d.Decimal.String())
 }
@@ -133,8 +132,8 @@ func (d NullDecimal) MarshalJSON() ([]byte, error) {
 	return d.Decimal.MarshalJSON()
 }
 
-// Timestamp is a PostgreSQL timestamp (without time zone) serialized in the
-// same format Prisma uses: ISO-8601 in UTC with millisecond precision.
+// Timestamp is a PostgreSQL timestamp (without time zone) serialized as an
+// ISO-8601 UTC string with millisecond precision.
 type Timestamp struct {
 	time.Time
 }
@@ -187,7 +186,7 @@ func (t Timestamp) Value() (driver.Value, error) {
 	return t.Time, nil
 }
 
-// MarshalJSON renders "YYYY-MM-DDTHH:MM:SS.mmmZ" (Prisma/JSON.stringify style).
+// MarshalJSON renders "YYYY-MM-DDTHH:MM:SS.mmmZ".
 func (t Timestamp) MarshalJSON() ([]byte, error) {
 	return json.Marshal(t.Time.UTC().Format("2006-01-02T15:04:05.000Z"))
 }

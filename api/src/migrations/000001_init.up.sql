@@ -1,11 +1,11 @@
--- Baseline schema equivalent to the final Prisma schema (prisma/schema.prisma).
+-- Baseline schema of the API.
 --
 -- This migration is intentionally idempotent so it can be applied on top of an
--- existing database that was previously managed by Prisma (`prisma migrate
--- deploy`). On a fresh database it creates the exact same structures.
+-- existing database without recreating data. On a fresh database it creates
+-- the exact same structures.
 --
--- Types/columns match the Prisma-generated DDL (TEXT ids, TIMESTAMP(3),
--- DECIMAL(65,30), the "Category" enum and Prisma relation names).
+-- Types: TEXT ids, TIMESTAMP(3), DECIMAL(65,30), the "Category" enum and
+-- quoted relation names.
 
 -- ─── enums ───────────────────────────────────────────────────────────────────
 
@@ -50,8 +50,8 @@ CREATE TABLE IF NOT EXISTS "Customer" (
     CONSTRAINT "Customer_pkey" PRIMARY KEY ("id")
 );
 
--- Columns added by later Prisma migrations. `IF NOT EXISTS` keeps this file
--- safe for databases created before those migrations existed.
+-- Columns added later. `IF NOT EXISTS` keeps this file safe for databases
+-- created before those migrations existed.
 ALTER TABLE "Customer" ADD COLUMN IF NOT EXISTS "password" TEXT;
 ALTER TABLE "Customer" ADD COLUMN IF NOT EXISTS "resetToken" TEXT;
 ALTER TABLE "Customer" ADD COLUMN IF NOT EXISTS "resetTokenExpiresAt" TIMESTAMP(3);

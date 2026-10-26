@@ -1,5 +1,4 @@
-// Package docs serves the OpenAPI specification and Swagger UI at /api,
-// preserving the documentation paths used by the NestJS application.
+// Package docs serves the OpenAPI specification and Swagger UI at /api.
 package docs
 
 import (
@@ -13,8 +12,7 @@ var spec []byte
 // Spec returns the embedded OpenAPI document.
 func Spec() []byte { return spec }
 
-// JSONHandler serves the OpenAPI document at /api-json (same path used by
-// @nestjs/swagger).
+// JSONHandler serves the OpenAPI document at /api-json.
 func JSONHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")

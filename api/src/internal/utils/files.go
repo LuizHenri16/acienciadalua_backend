@@ -16,8 +16,7 @@ var (
 	fileExtensions  = map[string]bool{".pdf": true, ".zip": true}
 )
 
-// EnsureStorageDirs creates the upload/download directories, like the
-// mkdirSync calls at the top of the Nest ProductsController.
+// EnsureStorageDirs creates the upload/download directories if missing.
 func EnsureStorageDirs(uploadDir, filesDir string) error {
 	for _, dir := range []string{uploadDir, filesDir} {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
@@ -27,8 +26,7 @@ func EnsureStorageDirs(uploadDir, filesDir string) error {
 	return nil
 }
 
-// ValidateUploadExtension enforces the same extension allow-list used by the
-// multer fileFilter in the NestJS controller.
+// ValidateUploadExtension enforces the extension allow-list.
 func ValidateUploadExtension(fieldName, originalName string) error {
 	extension := strings.ToLower(filepath.Ext(originalName))
 

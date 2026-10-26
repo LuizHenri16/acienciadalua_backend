@@ -1,8 +1,4 @@
 // Package config loads and validates the runtime configuration.
-//
-// Every environment variable keeps the exact same name used by the NestJS
-// backend so existing deployments only need to change how the service is
-// started, not its configuration.
 package config
 
 import (
@@ -15,7 +11,7 @@ import (
 	"github.com/joho/godotenv"
 )
 
-// DefaultCORSOrigins mirrors the list hardcoded in the NestJS bootstrap.
+// DefaultCORSOrigins is used when CORS_ORIGINS is not set.
 var DefaultCORSOrigins = []string{
 	"http://192.241.253.54:3003",
 	"http://localhost:3002",
@@ -133,8 +129,8 @@ func Load() (*Config, error) {
 
 	frontendURL := os.Getenv("FRONTEND_URL")
 	if frontendURL == "" {
-		// FRONTEND_URL is used by the e-mail templates (the NestJS code relied on
-		// it too). Fall back to APP_URL so existing environments keep working.
+		// FRONTEND_URL is used by the e-mail templates. Fall back to APP_URL so
+		// existing environments keep working.
 		frontendURL = cfg.AppURL
 	}
 	cfg.FrontendURL = frontendURL

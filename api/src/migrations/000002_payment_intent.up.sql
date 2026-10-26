@@ -1,7 +1,6 @@
 -- ─── Payment intents (PIX) ───────────────────────────────────────────────────
--- Additive table: the NestJS implementation ignores it, so a rollback to Node
--- keeps working. It stores the full lifecycle of a PIX (pending, approved,
--- rejected, expired, refunded) while "Purchase" remains the access ledger.
+-- Stores the full lifecycle of a PIX (pending, approved, rejected, expired,
+-- refunded) while "Purchase" remains the access ledger.
 
 CREATE TABLE IF NOT EXISTS "PaymentIntent" (
     "id" TEXT NOT NULL,

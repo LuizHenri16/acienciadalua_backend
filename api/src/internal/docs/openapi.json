@@ -789,7 +789,7 @@
           "id": { "type": "string", "format": "uuid" },
           "title": { "type": "string" },
           "description": { "type": "string" },
-          "price": { "type": "string", "example": "49.9", "description": "Prisma-compatible decimal serialized as string" },
+          "price": { "type": "string", "example": "49.9", "description": "Decimal serialized as string" },
           "coverUrl": { "type": "string" },
           "fileUrl": { "type": "string" },
           "category": { "type": "string", "enum": ["STUDENT", "TEACHER"] },

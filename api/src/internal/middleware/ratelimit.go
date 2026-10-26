@@ -10,9 +10,8 @@ import (
 	"github.com/acienciadalua/api/internal/utils"
 )
 
-// RateLimiter is an in-memory sliding-window rate limiter, equivalent to the
-// @nestjs/throttler configuration (default 10 requests / 60s, with per-route
-// overrides on the auth endpoints).
+// RateLimiter is an in-memory sliding-window rate limiter (default 10
+// requests / 60s, with per-route overrides on the auth endpoints).
 type RateLimiter struct {
 	limit  int
 	window time.Duration

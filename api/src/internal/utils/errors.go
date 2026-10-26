@@ -8,13 +8,13 @@ import (
 )
 
 // Error is an application error that maps directly to an HTTP response with
-// the same shape produced by NestJS exception filters.
+// the standard error shape.
 type Error struct {
 	StatusCode int
 	// Message may be a string or a []string (validation errors).
 	Message any
 	// Label is the "error" field. It is empty for exceptions raised without an
-	// object body (e.g. the ThrottlerException), matching Nest's behaviour.
+	// object body (e.g. the rate limiter exception).
 	Label string
 }
 
@@ -33,8 +33,8 @@ func NewError(status int, message string) *Error {
 	return &Error{StatusCode: status, Message: message, Label: http.StatusText(status)}
 }
 
-// NewValidationError builds a 400 error whose message is a list, like
-// class-validator errors returned by the Nest ValidationPipe.
+// NewValidationError builds a 400 error whose message is a list of validation
+// errors.
 func NewValidationError(messages []string) *Error {
 	return &Error{
 		StatusCode: http.StatusBadRequest,
@@ -69,8 +69,7 @@ func Internal(message string) *Error {
 	return NewError(http.StatusInternalServerError, message)
 }
 
-// TooManyRequests mirrors @nestjs/throttler's exception, which has no
-// "error" property.
+// TooManyRequests builds the rate-limit error, which has no "error" property.
 func TooManyRequests() *Error {
 	return StatusError(http.StatusTooManyRequests, "ThrottlerException: Too Many Requests", "")
 }

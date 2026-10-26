@@ -2,7 +2,7 @@ package utils
 
 import "golang.org/x/crypto/bcrypt"
 
-const bcryptCost = 10 // same saltRounds used by the Nest PasswordService
+const bcryptCost = 10
 
 // HashPassword hashes a plaintext password with bcrypt.
 func HashPassword(password string) (string, error) {

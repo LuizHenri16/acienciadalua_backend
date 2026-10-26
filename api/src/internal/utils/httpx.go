@@ -14,8 +14,7 @@ import (
 // headroom for large product descriptions.
 const MaxJSONBody = 1 << 20 // 1 MiB
 
-// WriteJSON writes a JSON response. A nil payload produces an empty body,
-// which is what Nest does when a controller returns undefined.
+// WriteJSON writes a JSON response. A nil payload produces an empty body.
 func WriteJSON(w http.ResponseWriter, status int, payload any) {
 	if payload == nil {
 		w.WriteHeader(status)
@@ -29,7 +28,7 @@ func WriteJSON(w http.ResponseWriter, status int, payload any) {
 	}
 }
 
-// WriteError writes an error using the NestJS exception filter shape:
+// WriteError writes an error using the standard API error shape:
 //
 //	{"message": "...", "error": "Unauthorized", "statusCode": 401}
 //
@@ -67,8 +66,8 @@ func WriteError(w http.ResponseWriter, r *http.Request, err error) {
 	WriteJSON(w, appErr.StatusCode, body)
 }
 
-// BindJSON decodes a JSON request body into dst, rejecting unknown fields like
-// the Nest ValidationPipe (whitelist + forbidNonWhitelisted).
+// BindJSON decodes a JSON request body into dst, rejecting unknown fields
+// (whitelist + forbidNonWhitelisted behaviour).
 func BindJSON(w http.ResponseWriter, r *http.Request, dst any) error {
 	r.Body = http.MaxBytesReader(w, r.Body, MaxJSONBody)
 

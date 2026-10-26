@@ -1,5 +1,4 @@
-// Package services holds the business rules, equivalent to the NestJS
-// services.
+// Package services holds the business rules.
 package services
 
 import (
@@ -19,8 +18,7 @@ import (
 
 const resendBaseURL = "https://api.resend.com"
 
-// EmailService sends transactional e-mails through Resend, keeping the same
-// templates and flows as the Nest EmailService.
+// EmailService sends transactional e-mails through Resend.
 type EmailService struct {
 	cfg     *config.Config
 	client  *http.Client
@@ -219,7 +217,8 @@ func (s *EmailService) send(ctx context.Context, payload resendEmail) (string, e
 }
 
 func isEmail(value string) bool {
-	// Equivalent to /^[^\s@]+@[^\s@]+\.[^\s@]+$/ used by the Nest webhook.
+	// Basic address validation: no whitespace, one "@" with non-empty local
+	// part and domain, and a dot in the domain.
 	if strings.ContainsAny(value, " \t\n\r") {
 		return false
 	}

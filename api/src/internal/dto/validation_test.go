@@ -45,7 +45,7 @@ func TestPixValidationIncludesNestedField(t *testing.T) {
 		Payer:     &PixPayer{Email: "not-an-email"},
 	}
 
-	// class-validator reports the nested property name only, like Nest does.
+	// Validation reports the nested property name only.
 	assert.Equal(t, []string{"email must be an email"}, request.Validate())
 }
 

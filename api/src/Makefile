@@ -25,7 +25,7 @@ sqlc:
 	sqlc generate
 
 docker-build:
-	docker build -t acienciadalua-api-go .
+	docker build -t acienciadalua-api .
 
 # Teste de estresse (a API precisa estar no ar). Passe as flags em STRESS_ARGS.
 # Ex.: make stress STRESS_ARGS="-scenario=read -requests=5000 -concurrency=20"

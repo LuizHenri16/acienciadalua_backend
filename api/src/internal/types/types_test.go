@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestDecimalJSONMatchesPrisma(t *testing.T) {
+func TestDecimalJSONFormat(t *testing.T) {
 	value := MustDecimal("49.9000")
 
 	encoded, err := json.Marshal(value)
@@ -34,7 +34,7 @@ func TestDecimalScan(t *testing.T) {
 	assert.Equal(t, "59.5", driverValue)
 }
 
-func TestTimestampJSONMatchesPrisma(t *testing.T) {
+func TestTimestampJSONFormat(t *testing.T) {
 	value := NewTimestamp(time.Date(2026, 10, 24, 16, 33, 0, 0, time.UTC))
 
 	encoded, err := json.Marshal(value)

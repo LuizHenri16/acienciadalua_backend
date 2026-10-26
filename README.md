@@ -1,59 +1,70 @@
-# A Ciência da Lua - API
-A complete API for A Ciência da Lua website using NestJS, PostgreSQL and JWT.
+# A Ciência da Lua — API
 
-## Endpoints
+API em Go (chi + sqlc + pgx + golang-migrate) com PostgreSQL e JWT, usada pelo
+site A Ciência da Lua.
 
-### Admin
-- `POST /auth/admin/signup` - Register a new user
-- `POST /auth/admin/signin` - Authenticate user and return tokens
-- `POST /auth/refresh` - Generate a new access_token using a refresh_token
+## Stack
 
-### Customer
-- `POST /auth/user/signin` - Generate magic link for user authentication
-- `GET /auth/verify-link` - Verify magic link and return tokens
+- **HTTP:** chi v5
+- **Banco:** PostgreSQL 15
+- **Acesso a dados:** sqlc + pgx v5
+- **Migrations:** golang-migrate (embutidas no binário)
+- **Auth:** JWT (`golang-jwt/jwt/v5`) + bcrypt
+- **Docs:** OpenAPI em `/api-json` e Swagger UI em `/api`
+- **Pagamentos:** Mercado Pago (PIX e checkout)
+- **E-mail:** Resend
 
-## Running the app
+O código-fonte fica em [`api/src`](api/src). Detalhes de arquitetura,
+variáveis de ambiente, endpoints, migrations, testes e deploy estão em
+[`api/src/README.md`](api/src/README.md).
+
+## Rodando localmente
+
+Com Docker Compose (banco + API na porta 3001):
+
 ```bash
-npm run start:dev
+cp .env.example .env    # ajuste DB_*, JWT_* e credenciais
+docker compose up -d --build
 ```
 
-- The app will be available at `http://localhost:3000`.
-- The documentation will be available at `http://localhost:3000/api`.
+A API fica em `http://localhost:3001` (Swagger em `/api`, spec em `/api-json`,
+healthcheck em `/health`).
 
-## Implemented 
-- Framework: NestJS
-- Database: PostgreSQL
-- ORM: Prisma
-- JWT (Json Web Token)
-- Password hashing using bcrypt and comparing using bcrypt
-- Token refresh using jwt
-- Swagger documentation
-- Rate limiting using @nestjs/throttler
-- Cron job for cleaning up expired or used tokens daily at midnight using @nestjs/schedule
-- Mail service using Resend for sending magic links to customers
-- Validation pipes - using class-validator 
-
-
-## Status
-- in-progress
-
-## API em Go (produção)
-
-A pasta [`api/src`](api/src) contém o port completo da API para Go (chi + sqlc +
-pgx + golang-migrate), com os mesmos endpoints, contratos HTTP e variáveis de
-ambiente. O `Dockerfile` da raiz — usado pela action de deploy — constrói essa
-API Go para o serviço `backend_prod` da VPS. A implementação NestJS anterior
-continua em `Dockerfile.node` para desenvolvimento local e rollback.
+Sem Docker:
 
 ```bash
 cd api/src
 cp .env.example .env
-go run ./cmd/api                      # http://localhost:3000 (Swagger em /api)
-docker compose --profile go up -d api-go   # na raiz, expõe http://localhost:3001
+go run ./cmd/api        # http://localhost:3000
 ```
 
-Detalhes de arquitetura, migrations sobre um banco do Prisma, deploy na VPS,
-testes e diferenças conhecidas: [`api/src/README.md`](api/src/README.md).
+## Endpoints principais
 
-## Developers 
+### Admin
+- `POST /auth/admin/signup` — cadastra um usuário
+- `POST /auth/admin/signin` — autentica e devolve os tokens
+- `POST /auth/admin/refresh` — renova o access token
+
+### Cliente
+- `POST /auth/user/signin` — envia magic link de acesso
+- `POST /auth/user/forgot-password` / `POST /auth/user/reset-password`
+- `GET /auth/verify-link` — valida o magic link e devolve os tokens
+
+### Catálogo e pedidos
+- `GET /products`, `GET /products/:id`
+- `POST/PUT/PATCH/DELETE /products` (admin)
+- `POST /payment/create-preferences`, `POST /payment/pix`
+- `POST /payment/status`, `POST /payment/webhook`
+- `GET /customers/me`, `GET /customers/me/purchases`
+- `GET /customers/me/downloads/:productId`
+
+Lista completa em [`api/src/README.md`](api/src/README.md#endpoints).
+
+## Deploy
+
+O push para `main` dispara `.github/workflows/deploy.yml`, que constrói o
+`Dockerfile` da raiz, publica a imagem e atualiza o serviço `backend_prod` na
+VPS. O serviço expõe a porta interna `3000` para o proxy reverso.
+
+## Developers
 Luiz Henrique Bastos Santana

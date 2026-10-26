@@ -20,7 +20,7 @@ type Download struct {
 	FileURL string
 }
 
-// CustomersService ports the Nest CustomersService.
+// CustomersService implements customer profile, purchases and downloads.
 type CustomersService struct {
 	cfg *config.Config
 	q   *db.Queries

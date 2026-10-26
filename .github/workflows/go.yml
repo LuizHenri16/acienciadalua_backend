@@ -2,7 +2,7 @@ name: Go API (api/src)
 
 on:
   push:
-    branches: ["main", "refactor/port-go"]
+    branches: ["main"]
     paths:
       - "api/src/**"
       - ".github/workflows/go.yml"

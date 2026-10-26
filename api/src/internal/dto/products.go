@@ -2,7 +2,7 @@ package dto
 
 import "github.com/acienciadalua/api/internal/utils"
 
-// Category values accepted by the API (Prisma enum Category).
+// Category values accepted by the API.
 const (
 	CategoryStudent = "STUDENT"
 	CategoryTeacher = "TEACHER"

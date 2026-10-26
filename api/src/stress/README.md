@@ -14,7 +14,7 @@ go run ./stress
 # 20 conexões, 30 segundos
 go run ./stress -concurrency=20 -duration=30s
 
-# Para apontar para a API NestJS na 3000
+# Para apontar para a API na 3000
 go run ./stress -base-url=http://localhost:3000
 
 # Webhooks inofensivos

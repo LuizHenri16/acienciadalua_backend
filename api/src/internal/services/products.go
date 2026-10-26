@@ -34,7 +34,7 @@ type UpdateProductInput struct {
 	FileURL     *string
 }
 
-// ProductsService ports the Nest ProductsService.
+// ProductsService implements the product catalog and admin CRUD.
 type ProductsService struct {
 	q *db.Queries
 }

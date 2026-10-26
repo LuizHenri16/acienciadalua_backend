@@ -7,7 +7,7 @@ import (
 	"github.com/go-chi/cors"
 )
 
-// CORS mirrors the Nest `app.enableCors` configuration.
+// CORS configures the allowed origins, methods and headers.
 func CORS(origins []string) func(http.Handler) http.Handler {
 	return cors.Handler(cors.Options{
 		AllowedOrigins:   origins,

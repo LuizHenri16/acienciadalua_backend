@@ -126,7 +126,7 @@ type normalizedPayment struct {
 	ApprovedAt time.Time
 }
 
-// PaymentService ports the Nest PaymentService.
+// PaymentService implements checkout and PIX payments.
 type PaymentService struct {
 	cfg         *config.Config
 	pool        *pgxpool.Pool
@@ -649,8 +649,8 @@ func (s *PaymentService) ensurePurchase(ctx context.Context, payment *MPPayment)
 	}
 
 	if err := s.email.SendWelcomeEmail(ctx, customer.Email, customer.Name); err != nil {
-		// The Nest implementation logs and swallows e-mail failures so the
-		// webhook still returns 200.
+		// E-mail failures are logged and swallowed so the webhook still
+		// returns 200.
 		slog.Error("[EmailService] Erro ao enviar e-mail de boas-vindas", "error", err)
 	}
 

@@ -1,4 +1,4 @@
-// Package jobs contains scheduled tasks, equivalent to @nestjs/schedule.
+// Package jobs contains scheduled tasks.
 package jobs
 
 import (

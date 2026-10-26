@@ -15,9 +15,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
-// customerTokenTTL matches the `expiresIn: '1h'` registered in the Nest
-// JwtModule (it also applied to customer tokens, whose secret was overridden
-// but whose sign options were merged).
+// customerTokenTTL is the lifetime of customer access tokens.
 const customerTokenTTL = time.Hour
 
 // ResetTokenTTL is the 1 hour validity used by customerForgotPassword.
@@ -29,7 +27,7 @@ type TokenPair struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
-// AuthService ports the Nest AuthService and PasswordService.
+// AuthService implements admin and customer authentication.
 type AuthService struct {
 	cfg   *config.Config
 	q     *db.Queries
@@ -249,8 +247,8 @@ func (s *AuthService) CustomerResetPassword(ctx context.Context, data dto.ResetP
 	return utils.SignCustomerToken(customer.ID, customer.Email, customer.Name, s.cfg.JWTSecretCustomer, customerTokenTTL)
 }
 
-// CustomerDevToken is kept for parity with the Nest service. It is not
-// exposed through any route (the Nest controller did not expose it either).
+// CustomerDevToken is retained internally for development but is not exposed
+// through any route.
 func (s *AuthService) CustomerDevToken(ctx context.Context, email string) (string, error) {
 	customer, err := s.q.GetCustomerByEmail(ctx, email)
 	if errors.Is(err, pgx.ErrNoRows) {

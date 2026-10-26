@@ -19,9 +19,9 @@ import (
 	"github.com/jackc/pgx/v5/stdlib"
 )
 
-// SanitizeDatabaseURL removes Prisma-specific query parameters that pgx does
-// not understand (notably `?schema=public`, which PostgreSQL rejects as an
-// unknown startup parameter).
+// SanitizeDatabaseURL removes query parameters that pgx does not understand
+// (notably `?schema=public`, which PostgreSQL rejects as an unknown startup
+// parameter).
 func SanitizeDatabaseURL(raw string) (string, error) {
 	parsed, err := url.Parse(strings.TrimSpace(raw))
 	if err != nil {
@@ -74,8 +74,8 @@ func NewPool(ctx context.Context, databaseURL string) (*pgxpool.Pool, error) {
 // RunMigrations applies the embedded golang-migrate migrations.
 //
 // The baseline migration is idempotent, so it can also be applied to a database
-// that was previously managed by Prisma: golang-migrate only records its own
-// version in `schema_migrations`, leaving `_prisma_migrations` untouched.
+// that already has the schema. golang-migrate records its own version in
+// `schema_migrations`.
 func RunMigrations(ctx context.Context, databaseURL string, logger *slog.Logger) error {
 	dsn, err := SanitizeDatabaseURL(databaseURL)
 	if err != nil {

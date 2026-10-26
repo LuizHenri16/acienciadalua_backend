@@ -131,7 +131,7 @@ func buildRouter(cfg *config.Config, h *handlers.Handlers, logger *slog.Logger) 
 	router.Use(appmiddleware.Recoverer(logger))
 	router.Use(appmiddleware.CORS(cfg.CORSOrigins))
 
-	// Documentation (same paths as @nestjs/swagger).
+	// Documentation (Swagger UI + OpenAPI JSON).
 	router.Get("/api", docs.UIHandler)
 	router.Get("/api-json", docs.JSONHandler)
 
@@ -139,7 +139,7 @@ func buildRouter(cfg *config.Config, h *handlers.Handlers, logger *slog.Logger) 
 	router.Get("/health", h.Health)
 
 	// ─── Auth ────────────────────────────────────────────────────────────────
-	// Rate limits mirror ThrottlerModule (10/60s) and the @Throttle overrides.
+	// Rate limits per route (10/60s by default, with stricter auth overrides).
 	throttle := func(limit int, window time.Duration) func(http.Handler) http.Handler {
 		return appmiddleware.NewRateLimiter(limit, window).Middleware
 	}

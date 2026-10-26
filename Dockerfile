@@ -9,9 +9,6 @@
 #
 # O Dockerfile equivalente para uso local a partir de `api/src` é
 # `api/src/Dockerfile`. Mantenha os dois em sincronia ao alterar a imagem.
-#
-# A imagem NestJS anterior foi preservada em `Dockerfile.node` para
-# desenvolvimento local e rollback.
 
 # ─── build ───────────────────────────────────────────────────────────────────
 FROM golang:1.23-alpine AS build
@@ -56,6 +53,6 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
     CMD wget -qO- "http://127.0.0.1:${PORT}/health" || exit 1
 
-# ENTRYPOINT (em vez de CMD) garante que o binário Go suba mesmo se o compose
-# da VPS ainda tiver o `command` antigo do Node. Remova-o para evitar confusão.
+# ENTRYPOINT (em vez de CMD) garante que o binário Go seja sempre o processo
+# principal do container, mesmo que um `command` antigo ainda exista no compose.
 ENTRYPOINT ["/app/api"]

@@ -1,6 +1,5 @@
-// Package handlers contains the HTTP layer (the equivalent of the NestJS
-// controllers). Handlers stay thin: parse/validate input, call a service and
-// write the response.
+// Package handlers contains the HTTP layer (controllers). Handlers stay thin:
+// parse/validate input, call a service and write the response.
 package handlers
 
 import (
@@ -39,8 +38,7 @@ func New(
 	}
 }
 
-// Health is an extra endpoint (not present in the NestJS app) used by the
-// container healthcheck.
+// Health is used by the container healthcheck.
 func (h *Handlers) Health(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }

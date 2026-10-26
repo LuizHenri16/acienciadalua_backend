@@ -1,5 +1,5 @@
-// Package middleware contains the HTTP middlewares equivalent to the NestJS
-// guards, interceptors and platform middlewares.
+// Package middleware contains the HTTP middlewares (auth, CORS, rate limit,
+// logging, recovery).
 package middleware
 
 import (

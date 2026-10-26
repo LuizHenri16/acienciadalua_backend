@@ -1,25 +1,23 @@
-# A Ciência da Lua — API em Go
+# A Ciência da Lua — API
 
-Port do backend NestJS (`src/`, Prisma) para Go, preservando os mesmos
-contratos HTTP e as mesmas variáveis de ambiente. A especificação do porte está
-no plano `PORTO_BACKEND_NESTJS_PARA_GO.md` (na raiz do workspace, fora deste
-repositório).
+API HTTP em Go (chi + sqlc + pgx + golang-migrate) com PostgreSQL e JWT.
 
 ## Stack
 
-| Camada | NestJS | Go |
-|---|---|---|
-| HTTP | NestJS 11 + Express | chi v5 |
-| ORM | Prisma 7 | sqlc + pgx v5 |
-| Migrations | `prisma migrate` | golang-migrate (embutido no binário) |
-| Validação | class-validator | go-playground/validator + DTOs com as mesmas mensagens |
-| Auth | `@nestjs/jwt` + guards | `golang-jwt/jwt/v5` + middlewares |
-| Hash | bcrypt (10 rounds) | `golang.org/x/crypto/bcrypt` (10 rounds) |
-| Rate limit | `@nestjs/throttler` | sliding window em memória por rota |
-| Agendamento | `@nestjs/schedule` | `robfig/cron` |
-| Docs | Swagger em `/api` | OpenAPI em `/api-json` + Swagger UI em `/api` |
-| Pagamentos | SDK `mercadopago` | cliente REST (`api.mercadopago.com`) |
-| E-mail | `resend` | cliente REST (`api.resend.com`) |
+| Camada | Tecnologia |
+|---|---|
+| HTTP | chi v5 |
+| Banco | PostgreSQL 15 |
+| Acesso a dados | sqlc + pgx v5 |
+| Migrations | golang-migrate (embutido no binário) |
+| Validação | go-playground/validator + DTOs com mensagens em português |
+| Auth | `golang-jwt/jwt/v5` + middlewares |
+| Hash | `golang.org/x/crypto/bcrypt` (10 rounds) |
+| Rate limit | sliding window em memória por rota |
+| Agendamento | `robfig/cron` |
+| Docs | OpenAPI em `/api-json` + Swagger UI em `/api` |
+| Pagamentos | cliente REST (`api.mercadopago.com`) |
+| E-mail | cliente REST (`api.resend.com`) |
 
 ## Estrutura
 
@@ -36,7 +34,7 @@ api/src/
 │   ├── services/               # regras de negócio (auth, products, payment, ...)
 │   ├── jobs/                   # cron de limpeza de tokens
 │   ├── docs/                   # OpenAPI + Swagger UI
-│   ├── types/                  # Decimal/Timestamp no formato do Prisma
+│   ├── types/                  # Decimal/Timestamp com o formato JSON do contrato
 │   └── utils/                  # erros, JSON, JWT, bcrypt, arquivos
 ├── migrations/                 # golang-migrate (embutido via //go:embed)
 ├── sql/queries/                # queries do sqlc
@@ -69,14 +67,13 @@ make test               # testes unitários
 make test-integration   # requer TEST_DATABASE_URL (trunca tabelas!)
 make fmt vet            # gofmt + go vet
 make sqlc               # regenera internal/db (sqlc v1.27+)
-make docker-build       # docker build -t acienciadalua-api-go .
+make docker-build       # docker build -t acienciadalua-api .
 make stress STRESS_ARGS="-scenario=read -requests=5000"  # carga (API no ar)
 ```
 
 ## Variáveis de ambiente
 
-Os nomes são **exatamente** os mesmos do backend NestJS, então um `.env` já
-existente funciona sem alterações:
+Obrigatórias/principais:
 
 `DATABASE_URL`, `JWT_SECRET`, `JWT_EXPIRES_IN`, `JWT_REFRESH_SECRET`,
 `JWT_REFRESH_EXPIRES_IN`, `JWT_SECRET_CUSTOMER`, `NODE_ENV`, `PORT`, `APP_URL`,
@@ -84,12 +81,12 @@ existente funciona sem alterações:
 `MERCADO_PAGO_ACCESS_TOKEN`, `MP_WEBHOOK_URL`, `MP_WEBHOOK_SECRET`,
 `MP_SUCCESS_URL`, `MP_FAILURE_URL`, `MP_PENDING_URL`.
 
-Variáveis opcionais (só da versão Go):
+Opcionais:
 
 | Variável | Padrão | Função |
 |---|---|---|
 | `FRONTEND_URL` | valor de `APP_URL` | base dos links nos e-mails |
-| `CORS_ORIGINS` | lista fixa do NestJS | origens CORS separadas por vírgula |
+| `CORS_ORIGINS` | lista de origens de produção/local | origens CORS separadas por vírgula |
 | `RUN_MIGRATIONS` | `true` | roda as migrations embutidas ao iniciar |
 | `UPLOAD_DIR` | `uploads` | diretório servido em `/uploads` |
 | `FILES_DIR` | `files` | diretório dos arquivos para download |
@@ -100,25 +97,16 @@ Variáveis opcionais (só da versão Go):
 | `PAYMENT_RECONCILE_ENABLED` | `true` | liga a reconciliação de pendentes |
 | `PAYMENT_RECONCILE_INTERVAL` | `2m` | intervalo da reconciliação |
 
-> `JWT_EXPIRES_IN`/`JWT_REFRESH_EXPIRES_IN` aceitam o formato do
-> `jsonwebtoken` (`1h`, `7d`, `30m`) e também segundos (`3600`).
->
-> Tokens de cliente expiram em 1h, como no NestJS (o `expiresIn: '1h'` do
-> `JwtModule` também era aplicado ao `JWT_SECRET_CUSTOMER`).
+> `JWT_EXPIRES_IN`/`JWT_REFRESH_EXPIRES_IN` aceitam o formato `1h`, `7d`,
+> `30m` e também segundos (`3600`).
 
-## Migrations e adoção de um banco existente
+## Migrations
 
 As migrations são embutidas no binário e aplicadas no startup
 (`RUN_MIGRATIONS=true`). O baseline (`migrations/000001_init.up.sql`) é
-**idempotente** (`CREATE TABLE IF NOT EXISTS`, `DO $$ ... EXCEPTION WHEN
-duplicate_object`, etc.), de modo que ele pode ser aplicado sobre um banco que
-já foi gerenciado pelo Prisma:
-
-- o schema resultante é o mesmo do `prisma/schema.prisma` (tipos `TEXT`,
-  `TIMESTAMP(3)`, `DECIMAL(65,30)` e enum `"Category"`);
-- o golang-migrate grava o controle em `schema_migrations`;
-- a tabela `_prisma_migrations` é deixada intacta — é possível voltar para o
-  NestJS sem rollback destrutivo.
+idempotente (`CREATE TABLE IF NOT EXISTS`, `DO $$ ... EXCEPTION WHEN
+duplicate_object`, etc.), então pode ser aplicado sobre um banco já existente
+sem recriar dados. O golang-migrate grava o controle em `schema_migrations`.
 
 Para regenerar os tipos após alterar `sql/queries/` ou `migrations/`:
 
@@ -130,8 +118,6 @@ sqlc generate
 > Ele redeclara o enum `"Category"` para o gerador e **nunca é executado**.
 
 ## Endpoints
-
-Idênticos ao NestJS (mesmos paths, bodies e formatos de resposta):
 
 | Método | Rota | Auth |
 |---|---|---|
@@ -158,21 +144,20 @@ Idênticos ao NestJS (mesmos paths, bodies e formatos de resposta):
 | GET | `/customers/me/downloads/:productId` | customer |
 | GET | `/uploads/*` | — (estático) |
 | GET | `/api`, `/api-json` | — (Swagger) |
-| GET | `/health` | — (extra, healthcheck) |
+| GET | `/health` | — (healthcheck) |
 
-Rate limiting (equivalente ao `ThrottlerModule`): 10 req/60s nas rotas de auth
-admin; 10 req/15min em `/auth/user/signin`; 3 req/15min em
-`/auth/user/forgot-password`.
+Rate limiting: 10 req/60s nas rotas de auth admin; 10 req/15min em
+`/auth/user/signin`; 3 req/15min em `/auth/user/forgot-password`.
 
-### Contratos mantidos
+### Contratos
 
-- `Decimal` serializado como **string** (`"49.9"`), como no Prisma.
+- `Decimal` serializado como **string** (`"49.9"`).
 - Datas em `YYYY-MM-DDTHH:mm:ss.mmmZ` (ISO-8601 UTC com milissegundos).
-- Erros no formato NestJS: `{ "message", "error", "statusCode" }`, com
-  `message` em array para falhas de validação.
+- Erros no formato `{ "message", "error", "statusCode" }`, com `message` em
+  array para falhas de validação.
 - 404/405 com `Cannot <METHOD> <path>`.
-- Uploads multipart (`cover` → `uploads/`, `file` → `files/`), mesmas extensões
-  permitidas (`.jpg/.jpeg/.png` e `.pdf/.zip`).
+- Uploads multipart (`cover` → `uploads/`, `file` → `files/`), extensões
+  permitidas `.jpg/.jpeg/.png` e `.pdf/.zip`.
 - Webhook do Mercado Pago idempotente por `mercadoPagoPaymentId` (índice único +
   `ON CONFLICT DO NOTHING` dentro de transação).
 
@@ -204,18 +189,18 @@ Build isolado:
 
 ```bash
 cd api/src
-docker build -t acienciadalua-api-go .
-docker run --rm -p 3001:3000 --env-file .env acienciadalua-api-go
+docker build -t acienciadalua-api .
+docker run --rm -p 3001:3000 --env-file .env acienciadalua-api
 ```
 
-Via compose (na raiz do backend), em paralelo com a API Node:
+Via compose (na raiz do backend):
 
 ```bash
-docker compose --profile go up -d api-go   # http://localhost:3001
+docker compose up -d --build   # http://localhost:3001
 ```
 
-O serviço `api-go` usa o mesmo `db` do compose, monta `./uploads` e `./files`
-e, no compose local, roda em paralelo ao serviço `api` (NestJS).
+O compose sobe o PostgreSQL (`db`, porta 5432) e a API (`api`, porta 3001),
+montando `./uploads` e `./files`.
 
 ### Deploy na VPS (imagem de produção)
 
@@ -230,9 +215,9 @@ docker compose pull backend_prod
 docker compose up -d --no-deps backend_prod
 ```
 
-O serviço `backend_prod` continua usando a mesma imagem/tag e a porta interna
-`3000`, então o proxy reverso não precisa mudar. O compose da VPS fica assim
-(ajuste o `DATABASE_URL` conforme o seu `.env`):
+O serviço `backend_prod` usa a porta interna `3000`, então o proxy reverso não
+precisa mudar. O compose da VPS fica assim (ajuste o `DATABASE_URL` conforme o
+seu `.env`):
 
 ```yaml
 backend_prod:
@@ -247,7 +232,6 @@ backend_prod:
     - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database_prod:5432/${POSTGRES_DB}?schema=public
     - PORT=3000
     - RUN_MIGRATIONS=true
-  # command: ...  # remover: a imagem Go roda as migrations no startup
   volumes:
     - ./uploads:/app/uploads
     - ./files:/app/files
@@ -255,36 +239,15 @@ backend_prod:
     - acienciadalua_network_prod
 ```
 
-A imagem usa `ENTRYPOINT`, então mesmo que o `command` antigo
-(`npx prisma migrate deploy && node dist/main.js`) permaneça, o binário Go sobe
-e ignora os argumentos. Ainda assim, remova o `command` para não confundir.
-
-Antes do primeiro deploy, confirme no `.env` da VPS:
+Antes do deploy, confirme no `.env` da VPS:
 
 - `JWT_SECRET`, `JWT_REFRESH_SECRET` e `JWT_SECRET_CUSTOMER` definidos;
 - `DATABASE_URL` apontando para o banco atual;
-- `APP_URL` e `MP_*` com as URLs públicas de produção;
+- `APP_URL`, `MP_*` e `PAYMENT_STATUS_SECRET` com os valores públicos de
+  produção;
 - `RUN_MIGRATIONS=true` (padrão) para aplicar o baseline idempotente;
 - `uploads/` e `files/` graváveis pelo uid `1000` (a imagem roda como `app`):
   `chown -R 1000:1000 uploads files`.
-
-Rollback: antes do primeiro deploy Go, guarde a imagem Node atual na VPS:
-
-```bash
-docker tag luizhenri16/acienciadalua-backend:latest \
-  luizhenri16/acienciadalua-backend:node-rollback
-```
-
-Se precisar voltar:
-
-```bash
-docker tag luizhenri16/acienciadalua-backend:node-rollback \
-  luizhenri16/acienciadalua-backend:latest
-docker compose up -d --no-deps backend_prod
-```
-
-O `Dockerfile.node` também preserva o build NestJS no repositório; um
-`git revert` do commit de cutover + push para `main` reconstrói a imagem Node.
 
 ## Testes
 
@@ -309,27 +272,20 @@ go run ./stress -scenario=read -concurrency=20 -requests=5000
 go run ./stress -base-url=http://localhost:3000 -scenario=read -duration=30s
 ```
 
-O padrão é a API Go em `http://localhost:3001`; use `-base-url` para apontar
-para outra instância (por exemplo, a NestJS na 3000).
+O padrão é `http://localhost:3001`; use `-base-url` para apontar para outra
+instância. Cenários: `read` (padrão, sem escritas), `webhook`, `auth`, `crud`
+(ciclo de produto, exige admin e limpa o que criou) e `mixed`. Use
+`-max-error-rate` para falhar em CI e `-json` para saída legível por máquina.
+Flags, avisos de rate limit e cuidados com escritas estão em
+[`stress/README.md`](stress/README.md).
 
-Cenários: `read` (padrão, sem escritas), `webhook`, `auth`, `crud` (ciclo de
-produto, exige admin e limpa o que criou) e `mixed`. Use `-max-error-rate` para
-falhar em CI e `-json` para saída legível por máquina. Flags, avisos de rate
-limit e cuidados com escritas estão em [`stress/README.md`](stress/README.md).
-
-## Diferenças conhecidas (menores)
-
-Todas deliberadas, para manter compatibilidade ou robustez:
+## Comportamentos conhecidos
 
 1. `GET /products?category=INVALID` responde **400** com a mensagem de enum.
-   No NestJS/Prisma o valor inválido chegava ao banco e virava **500**.
-2. Preços em JSON são aceitos apenas como **número** (como no
-   `class-transformer`); strings são rejeitadas com 400.
-3. O webhook também aceita notificações via query string
-   (`?type=payment&data.id=...`), além do corpo JSON. O comportamento anterior
-   (corpo) continua idêntico.
-4. `GET /customers/me` mantém `password` e `resetToken` na resposta, pois era
-   exatamente o que o Prisma retornava (`findUnique` sem `select`).
-5. `GET /health` é um endpoint adicional (não existe no NestJS) usado pelo
-   healthcheck do container.
+2. Preços em JSON são aceitos apenas como **número**; strings são rejeitadas
+   com 400.
+3. O webhook aceita notificações via corpo JSON e via query string
+   (`?type=payment&data.id=...`).
+4. `GET /customers/me` mantém `password` e `resetToken` na resposta.
+5. `GET /health` é usado pelo healthcheck do container.
 6. `/api-yaml` não é servido; apenas `/api` (UI) e `/api-json` (spec).

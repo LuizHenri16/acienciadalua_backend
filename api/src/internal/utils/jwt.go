@@ -8,7 +8,6 @@ import (
 )
 
 // AdminClaims is the payload of an admin access/refresh token.
-// Mirrors `AdminJwtPayload` from the NestJS backend.
 type AdminClaims struct {
 	ID    string `json:"id"`
 	Email string `json:"email"`
@@ -16,8 +15,7 @@ type AdminClaims struct {
 	jwt.RegisteredClaims
 }
 
-// CustomerClaims is the payload of a customer token.
-// Mirrors `CustomerJwtPayload` from the NestJS backend (sub/email/name).
+// CustomerClaims is the payload of a customer token (sub/email/name).
 type CustomerClaims struct {
 	Email string `json:"email"`
 	Name  string `json:"name"`
@@ -46,9 +44,8 @@ func SignAdminToken(id, email, role, secret string, ttl time.Duration) (string, 
 	return sign(claims, secret)
 }
 
-// SignCustomerToken signs a customer token. The NestJS implementation signs
-// customer tokens with JWT_SECRET_CUSTOMER and the JwtModule default expiry
-// (1 hour), so the same behaviour is kept here.
+// SignCustomerToken signs a customer token with JWT_SECRET_CUSTOMER and the
+// given TTL (1 hour by default).
 func SignCustomerToken(id, email, name, secret string, ttl time.Duration) (string, error) {
 	now := time.Now()
 	claims := CustomerClaims{

@@ -5,9 +5,9 @@ import (
 	"github.com/acienciadalua/api/internal/utils"
 )
 
-// PurchaseProduct is an item of GET /customers/me/purchases. It mirrors the
-// Prisma `select` used by the Nest CustomersService (note: no price field)
-// plus the purchase date.
+// PurchaseProduct is an item of GET /customers/me/purchases. It includes the
+// product fields needed by the UI (note: no price field) plus the purchase
+// date.
 type PurchaseProduct struct {
 	ID          string          `json:"id"`
 	Title       string          `json:"title"`
