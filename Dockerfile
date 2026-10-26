@@ -56,4 +56,6 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
     CMD wget -qO- "http://127.0.0.1:${PORT}/health" || exit 1
 
+# ENTRYPOINT (em vez de CMD) garante que o binário Go suba mesmo se o compose
+# da VPS ainda tiver o `command` antigo do Node. Remova-o para evitar confusão.
 ENTRYPOINT ["/app/api"]

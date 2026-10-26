@@ -202,19 +202,59 @@ docker compose up -d --no-deps backend_prod
 ```
 
 O serviço `backend_prod` continua usando a mesma imagem/tag e a porta interna
-`3000`, então o proxy reverso não precisa mudar. Antes do primeiro deploy,
-confirme no `.env` da VPS:
+`3000`, então o proxy reverso não precisa mudar. O compose da VPS fica assim
+(ajuste o `DATABASE_URL` conforme o seu `.env`):
+
+```yaml
+backend_prod:
+  image: luizhenri16/acienciadalua-backend:latest
+  container_name: acienciadalua_backend_prod
+  restart: always
+  depends_on:
+    - database_prod
+  env_file:
+    - .env
+  environment:
+    - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database_prod:5432/${POSTGRES_DB}?schema=public
+    - PORT=3000
+    - RUN_MIGRATIONS=true
+  # command: ...  # remover: a imagem Go roda as migrations no startup
+  volumes:
+    - ./uploads:/app/uploads
+    - ./files:/app/files
+  networks:
+    - acienciadalua_network_prod
+```
+
+A imagem usa `ENTRYPOINT`, então mesmo que o `command` antigo
+(`npx prisma migrate deploy && node dist/main.js`) permaneça, o binário Go sobe
+e ignora os argumentos. Ainda assim, remova o `command` para não confundir.
+
+Antes do primeiro deploy, confirme no `.env` da VPS:
 
 - `JWT_SECRET`, `JWT_REFRESH_SECRET` e `JWT_SECRET_CUSTOMER` definidos;
 - `DATABASE_URL` apontando para o banco atual;
 - `APP_URL` e `MP_*` com as URLs públicas de produção;
 - `RUN_MIGRATIONS=true` (padrão) para aplicar o baseline idempotente;
 - `uploads/` e `files/` graváveis pelo uid `1000` (a imagem roda como `app`):
-  `chown -R 1000:1000 uploads files`;
-- remover `entrypoint`/`command` específicos de Node do serviço, se existirem.
+  `chown -R 1000:1000 uploads files`.
 
-O `Dockerfile.node` preserva a imagem NestJS anterior para desenvolvimento
-local (o serviço `api` do compose usa esse arquivo) e para rollback: um
+Rollback: antes do primeiro deploy Go, guarde a imagem Node atual na VPS:
+
+```bash
+docker tag luizhenri16/acienciadalua-backend:latest \
+  luizhenri16/acienciadalua-backend:node-rollback
+```
+
+Se precisar voltar:
+
+```bash
+docker tag luizhenri16/acienciadalua-backend:node-rollback \
+  luizhenri16/acienciadalua-backend:latest
+docker compose up -d --no-deps backend_prod
+```
+
+O `Dockerfile.node` também preserva o build NestJS no repositório; um
 `git revert` do commit de cutover + push para `main` reconstrói a imagem Node.
 
 ## Testes
