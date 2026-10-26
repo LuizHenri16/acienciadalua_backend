@@ -21,7 +21,10 @@ jobs:
       - name: Build e Push da imagem do Backend
         uses: docker/build-push-action@v5
         with:
+          # O Dockerfile da raiz agora constrói a API Go (api/src).
           context: .
+          file: ./Dockerfile
+          target: production
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/acienciadalua-backend:latest
 

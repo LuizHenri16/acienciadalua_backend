@@ -1,8 +1,4 @@
-# Dependencies and build artifacts
-node_modules
-# dist
-
-# Environment files (use Docker secrets or env vars at runtime)
+# Environment files (use env vars at runtime)
 .env
 .env.*
 
@@ -16,11 +12,6 @@ node_modules
 
 # Logs
 *.log
-logs
-
-# Test files
-coverage
-test
 
 # Docker files (no need to copy into the image)
 Dockerfile
@@ -31,3 +22,10 @@ docker-compose.yml
 .temp
 .tmp
 README.md
+
+# Go build artifacts / local data (the root Dockerfile builds from api/src)
+api/src/uploads
+api/src/files
+api/src/bin
+api/src/coverage.out
+api/src/*.test

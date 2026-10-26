@@ -1,0 +1,68 @@
+name: Go API (api/src)
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "api/src/**"
+      - ".github/workflows/go.yml"
+  pull_request:
+    paths:
+      - "api/src/**"
+      - ".github/workflows/go.yml"
+
+defaults:
+  run:
+    working-directory: api/src
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: acienciadalua
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: api/src/go.mod
+          cache-dependency-path: api/src/go.sum
+
+      - name: gofmt check
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "Arquivos fora do gofmt:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: Build
+        run: go build ./...
+
+      - name: Unit tests
+        run: go test ./...
+
+      - name: Integration tests
+        env:
+          TEST_DATABASE_URL: postgresql://test:test@localhost:5432/acienciadalua?schema=public
+        run: go test ./internal/services -v

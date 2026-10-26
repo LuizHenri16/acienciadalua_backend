@@ -1,0 +1,20 @@
+.git
+.gitignore
+.github
+*.md
+.env
+.env.*
+!.env.example
+Dockerfile
+docker-compose*.yml
+.dockerignore
+Makefile
+
+# Local build artifacts / test data
+api
+coverage.out
+*.test
+uploads/*
+files/*
+!uploads/.gitkeep
+!files/.gitkeep

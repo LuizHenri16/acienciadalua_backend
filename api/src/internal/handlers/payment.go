@@ -1,0 +1,117 @@
+package handlers
+
+import (
+	"encoding/json"
+	"errors"
+	"io"
+	"net/http"
+
+	"github.com/acienciadalua/api/internal/dto"
+	"github.com/acienciadalua/api/internal/services"
+	"github.com/acienciadalua/api/internal/utils"
+)
+
+func (h *Handlers) CreatePreferences(w http.ResponseWriter, r *http.Request) {
+	var request dto.CreatePreferencesRequest
+	if err := utils.BindJSON(w, r, &request); err != nil {
+		writeError(w, r, err)
+		return
+	}
+	if messages := request.Validate(); len(messages) > 0 {
+		writeError(w, r, validationError(messages))
+		return
+	}
+
+	response, err := h.payment.CreatePreferences(r.Context(), request.ProductID)
+	if err != nil {
+		writeError(w, r, err)
+		return
+	}
+
+	writeJSON(w, http.StatusCreated, response)
+}
+
+func (h *Handlers) CreatePixPayment(w http.ResponseWriter, r *http.Request) {
+	var request dto.CreatePixPaymentRequest
+	if err := utils.BindJSON(w, r, &request); err != nil {
+		writeError(w, r, err)
+		return
+	}
+	if messages := request.Validate(); len(messages) > 0 {
+		writeError(w, r, validationError(messages))
+		return
+	}
+
+	response, err := h.payment.CreatePixPayment(r.Context(), request)
+	if err != nil {
+		writeError(w, r, err)
+		return
+	}
+
+	writeJSON(w, http.StatusCreated, response)
+}
+
+// GetPaymentStatus validates a signed status token and returns the normalized
+// state of a payment. The frontend only navigates to the success page when
+// this endpoint returns approved with accessGranted=true.
+func (h *Handlers) GetPaymentStatus(w http.ResponseWriter, r *http.Request) {
+	var request dto.PaymentStatusRequest
+	if err := utils.BindJSON(w, r, &request); err != nil {
+		writeError(w, r, err)
+		return
+	}
+	if messages := request.Validate(); len(messages) > 0 {
+		writeError(w, r, validationError(messages))
+		return
+	}
+
+	response, err := h.payment.GetPaymentStatus(r.Context(), request)
+	if err != nil {
+		writeError(w, r, err)
+		return
+	}
+
+	w.Header().Set("Cache-Control", "no-store")
+	writeJSON(w, http.StatusOK, response)
+}
+
+// Webhook processes Mercado Pago notifications. The body is decoded
+// permissively (Mercado Pago sends many extra fields and new ones are added
+// over time); query-string parameters are accepted as a fallback because
+// Mercado Pago also delivers `?type=payment&data.id=...` and legacy
+// `?topic=payment&id=...` notifications.
+func (h *Handlers) Webhook(w http.ResponseWriter, r *http.Request) {
+	var body services.WebhookRequest
+
+	if r.Body != nil {
+		decoder := json.NewDecoder(io.LimitReader(r.Body, 1<<20))
+		if err := decoder.Decode(&body); err != nil && !errors.Is(err, io.EOF) {
+			writeError(w, r, utils.BadRequest("Malformed JSON in request body"))
+			return
+		}
+	}
+
+	query := r.URL.Query()
+	notificationType := firstNonEmpty(query.Get("type"), query.Get("topic"))
+	paymentID := firstNonEmpty(query.Get("data.id"), query.Get("data[id]"), query.Get("id"))
+	headers := services.WebhookHeaders{
+		Signature: r.Header.Get("X-Signature"),
+		RequestID: firstNonEmpty(r.Header.Get("X-Request-Id"), r.Header.Get("X-Request-ID")),
+	}
+
+	if err := h.payment.HandleWebhook(r.Context(), body, notificationType, paymentID, headers); err != nil {
+		writeError(w, r, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if value != "" {
+			return value
+		}
+	}
+	return ""
+}

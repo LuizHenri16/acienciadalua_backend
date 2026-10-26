@@ -1,34 +1,3 @@
-# version: '3.8'
-
-# services:
-#   db:
-#     image: postgres:15
-#     container_name: acienciadalua-db
-#     restart: always
-#     environment:
-#       POSTGRES_USER: ${DB_USER}
-#       POSTGRES_PASSWORD: ${DB_PASSWORD}
-#       POSTGRES_DB: ${DB_NAME}
-#     ports:
-#       - "5432:5432"
-#     volumes:
-#       - postgres_data:/var/lib/postgresql/data
-
-# api:
-#   image: ghcr.io/luizhenri16/auth_api:latest
-#   ports:
-#     - "3000:3000"
-#   environment:
-#     DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:password123@db:5432/auth_db?schema=public}
-#     JWT_SECRET: ${JWT_SECRET}
-#     JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
-#     NODE_ENV: production
-#   depends_on:
-#     - db
-
-# volumes:
-#  postgres_data:
-
 services:
   db:
     image: postgres:15
@@ -42,36 +11,65 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     deploy:
       resources:
         limits:
           memory: 256M
 
+  # API Go. Exposta na 3001 para casar com NEXT_PUBLIC_API_URL do frontend.
   api:
-    build: .
+    build:
+      context: ./api/src
+      target: production
     container_name: acienciadalua-api
     restart: always
     ports:
-      - "3000:3000"
+      - "${API_PORT:-3001}:3000"
     environment:
-      - DB_HOST=db
-      - DB_USER=${DB_USER}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - DB_NAME=${DB_NAME}
-      - NODE_ENV=development
+      # Dentro do container o host do Postgres é "db". A API remove o
+      # ?schema=public antes de conectar (pgx não conhece esse parâmetro).
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}?schema=public
+      - NODE_ENV=${NODE_ENV:-production}
+      - PORT=3000
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-1h}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - JWT_REFRESH_EXPIRES_IN=${JWT_REFRESH_EXPIRES_IN:-7d}
+      - JWT_SECRET_CUSTOMER=${JWT_SECRET_CUSTOMER}
+      - APP_URL=${APP_URL:-http://localhost:3001}
+      - FRONTEND_URL=${FRONTEND_URL:-}
+      - CORS_ORIGINS=${CORS_ORIGINS:-}
+      - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - EMAIL_SENDER_ADDRESS=${EMAIL_SENDER_ADDRESS:-}
+      - CONTACT_EMAIL=${CONTACT_EMAIL:-}
+      - MERCADO_PAGO_ACCESS_TOKEN=${MERCADO_PAGO_ACCESS_TOKEN:-}
+      - MP_WEBHOOK_URL=${MP_WEBHOOK_URL:-}
+      - MP_WEBHOOK_SECRET=${MP_WEBHOOK_SECRET:-}
+      - MP_SUCCESS_URL=${MP_SUCCESS_URL:-}
+      - MP_FAILURE_URL=${MP_FAILURE_URL:-}
+      - MP_PENDING_URL=${MP_PENDING_URL:-}
+      - MP_PIX_EXPIRATION=${MP_PIX_EXPIRATION:-30m}
+      - MP_STATUS_TIMEOUT=${MP_STATUS_TIMEOUT:-5s}
+      - PAYMENT_STATUS_SECRET=${PAYMENT_STATUS_SECRET:-}
+      - PAYMENT_STATUS_TTL=${PAYMENT_STATUS_TTL:-24h}
+      - PAYMENT_RECONCILE_ENABLED=${PAYMENT_RECONCILE_ENABLED:-true}
+      - PAYMENT_RECONCILE_INTERVAL=${PAYMENT_RECONCILE_INTERVAL:-2m}
+      - RUN_MIGRATIONS=${RUN_MIGRATIONS:-true}
     volumes:
-      - .:/app
-      - /app/node_modules
-      - ./.env:/app/.env
       - ./uploads:/app/uploads
       - ./files:/app/files
-    command: sh -c "npm install && npx prisma generate && npx prisma migrate dev && npm run start:dev"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     deploy:
       resources:
         limits:
-          memory: 512M
+          memory: 256M
 
 volumes:
   postgres_data:
