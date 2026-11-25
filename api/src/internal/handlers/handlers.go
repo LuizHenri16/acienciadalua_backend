@@ -18,6 +18,7 @@ type Handlers struct {
 	customers *services.CustomersService
 	payment   *services.PaymentService
 	email     *services.EmailService
+	admin     *services.AdminService
 }
 
 func New(
@@ -27,6 +28,7 @@ func New(
 	customers *services.CustomersService,
 	payment *services.PaymentService,
 	email *services.EmailService,
+	admin *services.AdminService,
 ) *Handlers {
 	return &Handlers{
 		cfg:       cfg,
@@ -35,6 +37,7 @@ func New(
 		customers: customers,
 		payment:   payment,
 		email:     email,
+		admin:     admin,
 	}
 }
 

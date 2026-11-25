@@ -11,7 +11,8 @@
     { "name": "Products", "description": "Product catalog" },
     { "name": "Customers", "description": "Authenticated customer area" },
     { "name": "Payment", "description": "Mercado Pago checkout and webhook" },
-    { "name": "Contact", "description": "Website contact form" }
+    { "name": "Contact", "description": "Website contact form" },
+    { "name": "Admin", "description": "Admin panel analytics and settings" }
   ],
   "paths": {
     "/auth/admin/signup": {
@@ -675,6 +676,230 @@
           }
         }
       }
+    },
+    "/admin/dashboard": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Dashboard analytics for a period (7d, 30d, 90d, 1y)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "7d",
+                "30d",
+                "90d",
+                "1y"
+              ],
+              "example": "30d"
+            },
+            "description": "Comparison window."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Dashboard data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminDashboardDTO"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/admin/sales": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "List sales (purchases and pending payment intents), newest first",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Direct array of sales.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdminSale"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/admin/customers": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "List customers with nested purchases, newest first",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Direct array of customers.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdminCustomer"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/admin/products/sales-count": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "All-time sales count by product ID",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Map of product ID to sales count.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "integer"
+                  },
+                  "example": {
+                    "product-1": 12
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/admin/settings": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Get admin settings",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current settings.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminSettings"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Replace admin settings",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAdminSettingsDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated settings.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminSettings"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -979,6 +1204,547 @@
           "error": { "type": "string", "example": "Bad Request" },
           "statusCode": { "type": "integer", "example": 400 }
         }
+      },
+      "AdminDashboardDTO": {
+        "type": "object",
+        "properties": {
+          "kpis": {
+            "$ref": "#/components/schemas/DashboardKPIs"
+          },
+          "periodSummary": {
+            "$ref": "#/components/schemas/PeriodSummaryMetrics"
+          },
+          "revenueSeries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RevenueSeriesPoint"
+            }
+          },
+          "topProducts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TopProductItem"
+            }
+          },
+          "recentSales": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminSale"
+            }
+          },
+          "recentActivity": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminActivity"
+            }
+          },
+          "pendingSalesCount": {
+            "type": "integer"
+          },
+          "webhookStatus": {
+            "$ref": "#/components/schemas/WebhookStatus"
+          }
+        },
+        "required": [
+          "kpis",
+          "periodSummary",
+          "revenueSeries",
+          "topProducts",
+          "recentSales",
+          "recentActivity",
+          "pendingSalesCount",
+          "webhookStatus"
+        ]
+      },
+      "DashboardKPIs": {
+        "type": "object",
+        "properties": {
+          "monthlySalesCount": {
+            "type": "integer"
+          },
+          "previousMonthlySalesCount": {
+            "type": "integer"
+          },
+          "monthlySalesDeltaPct": {
+            "type": "number",
+            "format": "float"
+          },
+          "monthlyRevenue": {
+            "type": "string",
+            "example": "49.9",
+            "description": "Decimal serialized as string"
+          },
+          "previousMonthlyRevenue": {
+            "type": "string",
+            "example": "49.9",
+            "description": "Decimal serialized as string"
+          },
+          "monthlyRevenueDeltaPct": {
+            "type": "number",
+            "format": "float"
+          },
+          "activeProductsCount": {
+            "type": "integer"
+          },
+          "totalProductsCount": {
+            "type": "integer"
+          },
+          "totalCustomersCount": {
+            "type": "integer"
+          },
+          "newCustomersMonthCount": {
+            "type": "integer"
+          }
+        }
+      },
+      "PeriodSummaryMetrics": {
+        "type": "object",
+        "properties": {
+          "totalRevenue": {
+            "type": "string",
+            "example": "49.9",
+            "description": "Decimal serialized as string"
+          },
+          "revenueDeltaPct": {
+            "type": "number"
+          },
+          "comparisonLabel": {
+            "type": "string",
+            "example": "vs. 30 dias anteriores"
+          },
+          "averageTicket": {
+            "type": "string",
+            "example": "49.9",
+            "description": "Decimal serialized as string"
+          },
+          "averageTicketDeltaPct": {
+            "type": "number"
+          },
+          "approvalRate": {
+            "type": "number",
+            "example": 92
+          },
+          "approvalRateDeltaPp": {
+            "type": "number",
+            "example": 3
+          },
+          "refundsCount": {
+            "type": "integer"
+          },
+          "refundsDelta": {
+            "type": "integer"
+          },
+          "totalSalesCount": {
+            "type": "integer"
+          },
+          "newCustomersCount": {
+            "type": "integer"
+          }
+        }
+      },
+      "RevenueSeriesPoint": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "example": "2026-06-14"
+          },
+          "label": {
+            "type": "string",
+            "example": "14/06"
+          },
+          "revenue": {
+            "type": "string",
+            "example": "49.9",
+            "description": "Decimal serialized as string"
+          },
+          "salesCount": {
+            "type": "integer"
+          },
+          "newCustomers": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "date",
+          "label",
+          "revenue",
+          "salesCount",
+          "newCustomers"
+        ]
+      },
+      "TopProductItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "STUDENT",
+              "TEACHER"
+            ]
+          },
+          "salesCount": {
+            "type": "integer"
+          },
+          "revenue": {
+            "type": "string",
+            "example": "49.9",
+            "description": "Decimal serialized as string"
+          },
+          "price": {
+            "type": "string",
+            "example": "49.9",
+            "description": "Decimal serialized as string"
+          },
+          "tone": {
+            "type": "string",
+            "enum": [
+              "teal",
+              "lilac",
+              "amber",
+              "navy",
+              "rose"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "category",
+          "salesCount",
+          "revenue",
+          "price"
+        ]
+      },
+      "AdminSale": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "externalPaymentId": {
+            "type": "string"
+          },
+          "customerId": {
+            "type": "string"
+          },
+          "customerName": {
+            "type": "string"
+          },
+          "customerEmail": {
+            "type": "string",
+            "format": "email"
+          },
+          "productId": {
+            "type": "string"
+          },
+          "productTitle": {
+            "type": "string"
+          },
+          "productCategory": {
+            "type": "string",
+            "enum": [
+              "STUDENT",
+              "TEACHER"
+            ]
+          },
+          "amount": {
+            "type": "string",
+            "example": "49.9",
+            "description": "Decimal serialized as string"
+          },
+          "paymentMethod": {
+            "type": "string",
+            "enum": [
+              "pix",
+              "credit_card",
+              "checkout_pro"
+            ],
+            "description": "Approximated: pix when an intent exists, checkout_pro otherwise."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "approved",
+              "pending",
+              "rejected",
+              "cancelled",
+              "refunded"
+            ]
+          },
+          "statusDetail": {
+            "type": "string"
+          },
+          "accessGranted": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-10-24T16:33:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "externalPaymentId",
+          "customerId",
+          "customerName",
+          "customerEmail",
+          "productId",
+          "productTitle",
+          "productCategory",
+          "amount",
+          "paymentMethod",
+          "status",
+          "accessGranted",
+          "createdAt"
+        ]
+      },
+      "AdminActivity": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "sale_approved",
+              "customer_registered",
+              "payment_pending",
+              "product_updated",
+              "sale_refunded"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-10-24T16:33:00.000Z"
+          },
+          "relativeTime": {
+            "type": "string",
+            "example": "há 12 min"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "title",
+          "description",
+          "createdAt",
+          "relativeTime"
+        ]
+      },
+      "AdminCustomerPurchase": {
+        "type": "object",
+        "properties": {
+          "saleId": {
+            "type": "string"
+          },
+          "productId": {
+            "type": "string"
+          },
+          "productTitle": {
+            "type": "string"
+          },
+          "productCategory": {
+            "type": "string",
+            "enum": [
+              "STUDENT",
+              "TEACHER"
+            ]
+          },
+          "amount": {
+            "type": "string",
+            "example": "49.9",
+            "description": "Decimal serialized as string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "approved",
+              "pending",
+              "rejected",
+              "cancelled",
+              "refunded"
+            ]
+          },
+          "paymentMethod": {
+            "type": "string",
+            "enum": [
+              "pix",
+              "credit_card",
+              "checkout_pro"
+            ]
+          },
+          "purchasedAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-10-24T16:33:00.000Z"
+          }
+        },
+        "required": [
+          "saleId",
+          "productId",
+          "productTitle",
+          "productCategory",
+          "amount",
+          "status",
+          "paymentMethod",
+          "purchasedAt"
+        ]
+      },
+      "AdminCustomer": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-10-24T16:33:00.000Z"
+          },
+          "purchasesCount": {
+            "type": "integer"
+          },
+          "totalSpent": {
+            "type": "string",
+            "example": "49.9",
+            "description": "Decimal serialized as string"
+          },
+          "lastPurchaseAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-10-24T16:33:00.000Z",
+            "nullable": true
+          },
+          "purchases": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminCustomerPurchase"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "email",
+          "createdAt",
+          "purchasesCount",
+          "totalSpent",
+          "lastPurchaseAt",
+          "purchases"
+        ]
+      },
+      "WebhookStatus": {
+        "type": "object",
+        "properties": {
+          "connected": {
+            "type": "boolean"
+          },
+          "lastEventRelative": {
+            "type": "string",
+            "example": "há 12 min"
+          }
+        },
+        "required": [
+          "connected",
+          "lastEventRelative"
+        ]
+      },
+      "AdminSettings": {
+        "type": "object",
+        "properties": {
+          "storeName": {
+            "type": "string"
+          },
+          "supportEmail": {
+            "type": "string",
+            "format": "email"
+          },
+          "storefrontEnabled": {
+            "type": "boolean"
+          },
+          "autoReleaseOnApproval": {
+            "type": "boolean"
+          },
+          "notifyOnNewSale": {
+            "type": "boolean"
+          },
+          "notifyOnPendingPix": {
+            "type": "boolean"
+          },
+          "mercadoPagoMode": {
+            "type": "string",
+            "enum": [
+              "production",
+              "sandbox"
+            ]
+          },
+          "webhookUrl": {
+            "type": "string"
+          }
+        }
+      },
+      "UpdateAdminSettingsDTO": {
+        "type": "object",
+        "properties": {
+          "storeName": {
+            "type": "string"
+          },
+          "supportEmail": {
+            "type": "string",
+            "format": "email"
+          },
+          "storefrontEnabled": {
+            "type": "boolean"
+          },
+          "autoReleaseOnApproval": {
+            "type": "boolean"
+          },
+          "notifyOnNewSale": {
+            "type": "boolean"
+          },
+          "notifyOnPendingPix": {
+            "type": "boolean"
+          },
+          "mercadoPagoMode": {
+            "type": "string",
+            "enum": [
+              "production",
+              "sandbox"
+            ]
+          },
+          "webhookUrl": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "required": [
+          "storeName",
+          "supportEmail",
+          "mercadoPagoMode"
+        ]
       },
       "ThrottlerError": {
         "type": "object",

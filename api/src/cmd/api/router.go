@@ -67,6 +67,17 @@ func buildRouter(cfg *config.Config, h *handlers.Handlers, logger *slog.Logger) 
 		r.Post("/webhook", h.Webhook)
 	})
 
+	// ─── Admin panel ────────────────────────────────────────────────────────
+	router.Route("/admin", func(r chi.Router) {
+		r.Use(appmiddleware.RequireAdmin(cfg.JWTSecret))
+		r.With(throttle(60, time.Minute)).Get("/dashboard", h.GetAdminDashboard)
+		r.With(throttle(60, time.Minute)).Get("/sales", h.ListAdminSales)
+		r.Get("/customers", h.ListAdminCustomers)
+		r.Get("/products/sales-count", h.GetProductSalesCount)
+		r.Get("/settings", h.GetAdminSettings)
+		r.Put("/settings", h.PutAdminSettings)
+	})
+
 	// ─── Contact ─────────────────────────────────────────────────────────────
 	router.Post("/contact", h.SendContact)
 
