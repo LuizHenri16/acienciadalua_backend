@@ -65,8 +65,9 @@ func run(logger *slog.Logger) error {
 	customersService := services.NewCustomersService(cfg, queries)
 	mercadoPagoClient := services.NewMercadoPagoClient(cfg)
 	paymentService := services.NewPaymentService(cfg, pool, queries, productsService, mercadoPagoClient, emailService)
+	adminService := services.NewAdminService(cfg, queries)
 
-	handlerSet := handlers.New(cfg, authService, productsService, customersService, paymentService, emailService)
+	handlerSet := handlers.New(cfg, authService, productsService, customersService, paymentService, emailService, adminService)
 
 	scheduler, err := jobs.StartTokenCleanup(queries, logger)
 	if err != nil {
