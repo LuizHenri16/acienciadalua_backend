@@ -79,7 +79,8 @@ func buildRouter(cfg *config.Config, h *handlers.Handlers, logger *slog.Logger) 
 	})
 
 	// ─── Contact ─────────────────────────────────────────────────────────────
-	router.Post("/contact", h.SendContact)
+	// Limit anonymous contact submissions to reduce spam and email-service abuse.
+	router.With(throttle(5, 15*time.Minute)).Post("/contact", h.SendContact)
 
 	// ─── Customers (JWT customer) ────────────────────────────────────────────
 	router.Route("/customers", func(r chi.Router) {
